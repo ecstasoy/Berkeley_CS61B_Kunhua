@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author Kunhua Huang
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -110,15 +110,79 @@ public class Model extends Observable {
         boolean changed;
         changed = false;
 
-        // TODO: Modify this.board (and perhaps this.score) to account
-        // for the tilt to the Side SIDE. If the board changed, set the
-        // changed local variable to true.
+        board.setViewingPerspective(side);
+
+        for (int c = 0; c < board.size(); ++c) {
+            int[] curr = new int[board.size()];
+            int validLength = board.size() - 1;
+
+            if (board.tile(c, board.size() - 1) != null) {
+                curr[board.size() - 1] = board.tile(c, board.size() - 1).value();
+            }
+
+            for (int r = board.size() - 2; r >= 0; --r) {
+                if (board.tile(c, r) != null) {
+                    int currValue = board.tile(c, r).value();
+                    curr[r] = currValue;
+
+                    Tile t = board.tile(c, r);
+                    int moveStep = getMoveStep(curr, r, validLength);
+                    Tile prevTile = board.tile(c, moveStep);
+                    board.move(c, moveStep, t);
+                    if (prevTile != null && prevTile != board.tile(c, moveStep)) {
+                        validLength = moveStep - 1;
+                    }
+                    if (board.tile(c, moveStep) != null && moveStep != r) {
+                        score += 2 * board.tile(c, moveStep).value();
+                    }
+                    update(curr, c);
+
+                    changed = true;
+                }
+            }
+        }
+
+        board.setViewingPerspective(Side.NORTH);
 
         checkGameOver();
         if (changed) {
             setChanged();
         }
         return changed;
+    }
+
+    /**
+     *
+     * @param curr
+     * @param row
+     * @param validLength
+     * @return
+     */
+    private int getMoveStep(int[] curr, int row, int validLength) {
+        for (int i = row; i < validLength; ++i) {
+            if (curr[row] != curr[i + 1] && curr[i + 1] != 0) {
+                return i;
+            } else if (curr[row] == curr[i + 1]) {
+                return i + 1;
+            }
+        }
+
+        return validLength;
+    }
+
+    /**
+     *
+     * @param curr
+     * @param col
+     */
+    private void update(int[] curr, int col) {
+        for (int row = 0; row < board.size(); ++row) {
+            if (board.tile(col, row) != null) {
+                curr[row] = board.tile(col, row).value();
+            } else {
+                curr[row] = 0;
+            }
+        }
     }
 
     /** Checks if the game is over and sets the gameOver variable
@@ -137,7 +201,15 @@ public class Model extends Observable {
      *  Empty spaces are stored as null.
      * */
     public static boolean emptySpaceExists(Board b) {
-        // TODO: Fill in this function.
+
+        for (int i = 0; i < b.size(); ++i) {
+            for (int j = 0; j < b.size(); ++j) {
+                if (b.tile(i, j) == null) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -147,7 +219,15 @@ public class Model extends Observable {
      * given a Tile object t, we get its value with t.value().
      */
     public static boolean maxTileExists(Board b) {
-        // TODO: Fill in this function.
+
+        for (int i = 0; i < b.size(); ++i) {
+            for (int j = 0; j < b.size(); ++j) {
+                if (b.tile(i, j) != null && b.tile(i, j).value() == MAX_PIECE) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -158,7 +238,19 @@ public class Model extends Observable {
      * 2. There are two adjacent tiles with the same value.
      */
     public static boolean atLeastOneMoveExists(Board b) {
-        // TODO: Fill in this function.
+        if (emptySpaceExists(b)) return true;
+
+        for (int i = 0; i < b.size(); ++i) {
+            for (int j = 0; j < b.size(); ++j) {
+                if (i + 1 < b.size() && b.tile(i + 1, j).value() == b.tile(i, j).value()) {
+                    return true;
+                }
+                if (j + 1 < b.size() && b.tile(i, j + 1).value() == b.tile(i, j).value()) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
