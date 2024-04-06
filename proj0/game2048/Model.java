@@ -128,12 +128,12 @@ public class Model extends Observable {
                     Tile t = board.tile(c, r);
                     int moveStep = getMoveStep(curr, r, validLength);
                     Tile prevTile = board.tile(c, moveStep);
+                    if (board.tile(c, moveStep) != null && moveStep != r) {
+                        score += 2 * board.tile(c, moveStep).value();
+                    }
                     board.move(c, moveStep, t);
                     if (prevTile != null && prevTile != board.tile(c, moveStep)) {
                         validLength = moveStep - 1;
-                    }
-                    if (board.tile(c, moveStep) != null && moveStep != r) {
-                        score += 2 * board.tile(c, moveStep).value();
                     }
                     update(curr, c);
 
