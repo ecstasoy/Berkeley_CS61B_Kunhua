@@ -4,11 +4,17 @@ package DebugExercise;
  * Exercise for learning how the debug, breakpoint, and step-into
  * feature work.
  */
+
+/**
+ * This class contains a method that divides two numbers and rounds the result.
+ * The method is incorrect and needs to be debugged.
+ */
 public class DebugExercise1 {
     public static int divideThenRound(int top, int bottom) {
-        int quotient = top / bottom;
-        int result = Math.round(quotient);
-        return result;
+        if (bottom == 0) {
+            throw new IllegalArgumentException("The divisor cannot be zero.");
+        }
+        return (top + (bottom / 2) * (bottom > 0 ? 1 : -1)) / bottom;
     }
 
     public static void main(String[] args) {
