@@ -53,7 +53,7 @@ public class LinkedListDeque<T> {
     public void printDeque() {
         IntNode curr = sentinel.next;
 
-        while (curr != null) {
+        while (curr != sentinel) {
             System.out.println(curr.item + " ");
             curr = curr.next;
         }
@@ -64,6 +64,7 @@ public class LinkedListDeque<T> {
             IntNode firstNode = sentinel.next;
             sentinel.next.next.prev = sentinel;
             sentinel.next = sentinel.next.next;
+            size -= 1;
             return firstNode.item;
         } else {
             return null;
@@ -75,6 +76,7 @@ public class LinkedListDeque<T> {
             IntNode lastNode = sentinel.prev;
             sentinel.prev.prev.next = sentinel;
             sentinel.prev = sentinel.prev.prev;
+            size -= 1;
             return lastNode.item;
         } else {
             return null;
@@ -120,7 +122,4 @@ public class LinkedListDeque<T> {
         return true;
     }
 
-    public Iterator<T> iterator(){
-        //TODO: The Deque objects we’ll make are iterable (i.e. Iterable<T>) so we must provide this method to return an iterator.
-    }
 }

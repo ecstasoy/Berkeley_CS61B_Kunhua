@@ -147,7 +147,4 @@ public class ArrayDeque<T> {
         return true;
     }
 
-    public Iterator<T> iterator() {
-        //TODO: Implement this method
-    }
 }
