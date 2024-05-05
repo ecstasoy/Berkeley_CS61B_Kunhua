@@ -26,6 +26,8 @@ public class ArrayDeque<T> {
         System.arraycopy(items, nextLast, a, 0, size - nextLast);
         System.arraycopy(items, 0, a, size - nextLast, nextLast);
         items = a;
+        nextLast = size;
+        nextFirst = capacity - 1;
     }
 
     public void addFirst(T x) {
@@ -105,7 +107,12 @@ public class ArrayDeque<T> {
     }
 
     public T get(int index) {
-        int i = nextFirst + 1;
+        int i;
+        if (nextFirst == items.length - 1) {
+            i = 0;
+        } else {
+            i = nextFirst + 1;
+        }
         for (int j = 0; j < index; j += 1) {
             if (i == items.length - 1) {
                 i = 0;
