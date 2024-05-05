@@ -80,7 +80,7 @@ public class ArrayDequeTest {
     @Test
     public void bigTest() {
         ArrayDeque<Integer> ad1 = new ArrayDeque<Integer>();
-        int N = 10;
+        int N = 100;
         for (int i = 0; i < N; i += 1) {
             ad1.addLast(i);
         }
