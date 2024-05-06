@@ -1,6 +1,7 @@
 package deque;
 
 import java.util.Comparator;
+import java.util.Iterator;
 
 public class MaxArrayDeque<T> extends ArrayDeque<T> {
     private Comparator<T> comparator;
@@ -24,13 +25,13 @@ public class MaxArrayDeque<T> extends ArrayDeque<T> {
         if (isEmpty()) {
             return null;
         }
-        int idx = (getNextFirst() == getItemsLength() - 1) ? 0 : getNextFirst() + 1;
-        T max = get(idx);
-        while (idx != getNextLast()) {
-            if (c.compare(get(idx), max) > 0) {
-                max = get(idx);
+        Iterator<T> iter = iterator();
+        T max = iter.next();
+        while (iter.hasNext()) {
+            T current = iter.next();
+            if (c.compare(current, max) > 0) {
+                max = current;
             }
-            idx = (idx + 1) % getItemsLength();
         }
         return max;
     }
