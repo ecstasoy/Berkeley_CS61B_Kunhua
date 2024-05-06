@@ -1,6 +1,8 @@
 package deque;
 
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
 
 public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
     private T[] items;
@@ -139,32 +141,34 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
         if (this == o) {
             return true;
         }
-        Iterator<T> thisIter = this.iterator();
-        if (o instanceof ArrayDeque) {
-            Iterator<T> oIter = ((ArrayDeque<T>) o).iterator();
-            if (this.size() != ((ArrayDeque<T>) o).size()) {
-                return false;
-            }
-            while (thisIter.hasNext()) {
-                if (!thisIter.next().equals(oIter.next())) {
-                    return false;
-                }
-            }
-        } else if (o instanceof LinkedListDeque) {
-            Iterator<T> oIter = ((LinkedListDeque<T>) o).iterator();
-            if (this.size() != ((LinkedListDeque<T>) o).size()) {
-                return false;
-            }
-            while (thisIter.hasNext()) {
-                if (!thisIter.next().equals(oIter.next())) {
-                    return false;
-                }
-            }
-        } else {
+        if (!(o instanceof Iterable<?>)) {
             return false;
         }
+        Iterable<?> other = (Iterable<?>) o;
+        if (this.size() != getSize(other)) {
+            return false;
+        }
+        Iterator<T> thisIter = this.iterator();
+        Iterator<?> otherIter = other.iterator();
+        while (thisIter.hasNext() && otherIter.hasNext()) {
+            Object thisElem = thisIter.next();
+            Object otherElem = otherIter.next();
+            if (!Objects.equals(thisElem, otherElem)) {
+                return false;
+            }
+        }
+        return !thisIter.hasNext() && !otherIter.hasNext();
+    }
 
-        return true;
+    private int getSize(Iterable<?> iterable) {
+        if (iterable instanceof Collection<?>) {
+            return ((Collection<?>) iterable).size();
+        }
+        int count = 0;
+        for (Object obj : iterable) {
+            count++;
+        }
+        return count;
     }
 
     public Iterator<T> iterator() {
