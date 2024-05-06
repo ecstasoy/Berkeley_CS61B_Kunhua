@@ -159,7 +159,7 @@ public class ArrayDeque<T> implements Deque<T> {
     private class ADequeIterator implements Iterator<T> {
         private int wizPos;
 
-        public ADequeIterator() {
+        ADequeIterator() {
             wizPos = 0;
         }
 
