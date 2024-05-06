@@ -21,16 +21,16 @@ public class MaxArrayDeque<T> extends ArrayDeque<T> {
         if (c == null) {
             throw new IllegalArgumentException("Comparator cannot be null");
         }
-        if (size == 0) {
+        if (isEmpty()) {
             return null;
         }
-        int idx = (nextFirst == items.length - 1) ? 0 : nextFirst + 1;
-        T max = items[idx];
-        while (idx != nextLast) {
-            if (c.compare(items[idx], max) > 0) {
-                max = items[idx];
+        int idx = (getNextFirst() == getItemsLength() - 1) ? 0 : getNextFirst() + 1;
+        T max = get(idx);
+        while (idx != getNextLast()) {
+            if (c.compare(get(idx), max) > 0) {
+                max = get(idx);
             }
-            idx = (idx + 1) % items.length;
+            idx = (idx + 1) % getItemsLength();
         }
         return max;
     }

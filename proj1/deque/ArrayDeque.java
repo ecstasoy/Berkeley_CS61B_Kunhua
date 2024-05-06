@@ -2,11 +2,11 @@ package deque;
 
 import java.util.Iterator;
 
-public class ArrayDeque<T> implements Deque<T> {
-    T[] items;
-    int size;
-    int nextFirst;
-    int nextLast;
+public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
+    private T[] items;
+    private int size;
+    private int nextFirst;
+    private int nextLast;
 
     public ArrayDeque() {
         items = (T[]) new Object[8];
@@ -15,15 +15,19 @@ public class ArrayDeque<T> implements Deque<T> {
         nextLast = 1;
     }
 
-    public ArrayDeque(T x) {
-        items = (T[]) new Object[8];
-        items[0] = x;
-        size = 1;
-        nextFirst = 7;
-        nextLast = 1;
+    public int getItemsLength() {
+        return items.length;
     }
 
-    public void resize(int capacity) {
+    public int getNextFirst() {
+        return nextFirst;
+    }
+
+    public int getNextLast() {
+        return nextLast;
+    }
+
+    private void resize(int capacity) {
         T[] a = (T[]) new Object[capacity];
         System.arraycopy(items, nextLast, a, 0, size - nextLast);
         System.arraycopy(items, 0, a, size - nextLast, nextLast);
