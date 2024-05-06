@@ -15,15 +15,15 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
         nextLast = 1;
     }
 
-    public int getItemsLength() {
+    int getItemsLength() {
         return items.length;
     }
 
-    public int getNextFirst() {
+    int getNextFirst() {
         return nextFirst;
     }
 
-    public int getNextLast() {
+    int getNextLast() {
         return nextLast;
     }
 
@@ -125,6 +125,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
         return items[i];
     }
 
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
