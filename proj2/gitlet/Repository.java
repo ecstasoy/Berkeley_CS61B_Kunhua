@@ -36,6 +36,7 @@ public class Repository {
 
     }
 
+    /** init command */
     public static void init() throws IOException {
         if (isInitialized()) {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
@@ -60,16 +61,6 @@ public class Repository {
         return GITLET_DIR.exists();
     }
 
-    public static void createCommit(String commitMessage, String parentCommitId, Map<String, Path> stagedFiles) {
-        Map<String, Blob> blobs = new HashMap<>();
-        for (Map.Entry<String, Path> entry : stagedFiles.entrySet()) {
-            Blob blob = new Blob(entry.getValue().toFile());
-            blobs.put(entry.getKey(), blob);
-        }
-        Commit newCommit = new Commit(commitMessage, parentCommitId, blobs);
-        saveCommit(newCommit);
-    }
-
     public static void initCommit() {
         Commit initCommit = new Commit("initial commit", null, new HashMap<>());
         currentCommit = initCommit;
@@ -85,6 +76,7 @@ public class Repository {
         writeContents(master, currentCommit.getId());
     }
 
+    /** add command */
     public static void add(String fileName) {
         File file = join(CWD, fileName);
         if (!file.exists()) {
@@ -95,7 +87,55 @@ public class Repository {
             System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
+
+        Blob blob = new Blob(file);
+        String lastCommittedId = currentCommit.getBlobs().get(fileName);
+        if (lastCommittedId != null && lastCommittedId.equals(blob.getId())) {
+            stageArea.unstageFile(fileName);
+            System.out.println("File has not been modified since the last commit.");
+            System.exit(0);
+        }
         stageArea.stageFile(fileName, file);
+        storeBlob(blob);
+    }
+
+    public static void storeBlob(Blob blob) {
+        File blobFile = join(BLOBS_DIR, blob.getId());
+        writeObject(blobFile, blob);
+    }
+
+    /** commit command */
+    public static void commit(String message) {
+        if (!isInitialized()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+        if (stageArea.getStagedFiles().isEmpty()) {
+            System.out.println("No changes added to the commit.");
+            System.exit(0);
+        }
+        String parentCommitId = currentCommit.getId();
+        Map<String, Path> stagedFiles = new HashMap<>();
+        for (Map.Entry<String, Blob> entry : stageArea.getStagedFiles().entrySet()) {
+            stagedFiles.put(entry.getKey(), join(BLOBS_DIR, entry.getValue().getId()).toPath());
+        }
+        Commit newCommit = createCommit(message, parentCommitId, stagedFiles);
+        stageArea.clear();
+        currentCommit = newCommit;
+        writeContents(HEAD, currentCommit.getId());
+        writeContents(join(refsHeads, "master"), currentCommit.getId());
+    }
+
+    public static Commit createCommit(String commitMessage, String parentCommitId, Map<String, Path> stagedFiles) {
+        Map<String, Blob> blobs = new HashMap<>();
+        for (Map.Entry<String, Path> entry : stagedFiles.entrySet()) {
+            Blob blob = new Blob(entry.getValue().toFile());
+            blobs.put(entry.getKey(), blob);
+        }
+        Commit newCommit = new Commit(commitMessage, parentCommitId, blobs);
+        newCommit.setParent(parentCommitId);
+        saveCommit(newCommit);
+        return newCommit;
     }
 
     public static void saveCommit(Commit commit) {

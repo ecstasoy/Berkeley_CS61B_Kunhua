@@ -57,6 +57,10 @@ public class Commit implements Serializable, Dumpable {
         return parent;
     }
 
+    public void setParent(String parent) {
+        this.parent = parent;
+    }
+
     public Map<String, String> getBlobs() {
         return tracked;
     }

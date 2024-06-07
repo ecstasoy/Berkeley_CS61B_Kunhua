@@ -32,6 +32,11 @@ public class StageArea implements Serializable, Dumpable {
         return stagedFiles;
     }
 
+    public void clear() {
+        stagedFiles.clear();
+        Utils.writeObject(stage, this);
+    }
+
     @Override
     public void dump() {
         System.out.println("Stage Area: ");
