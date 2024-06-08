@@ -23,6 +23,19 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V>{
         root = null;
     }
 
+    public void printInOrder() {
+        printInOrder(root);
+    }
+
+    private void printInOrder(BSTNode node) {
+        if (node == null) {
+            return;
+        }
+        printInOrder(node.left);
+        System.out.println(node.key);
+        printInOrder(node.right);
+    }
+
     @Override
     public void clear() {
         root = null;
@@ -39,7 +52,7 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V>{
     }
 
     private V get(BSTNode node, K key) {
-        if (node == null) {
+        if (node == null || key == null) {
             return null;
         }
         int cmp = key.compareTo(node.key);
