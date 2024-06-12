@@ -111,7 +111,6 @@ public class Repository {
         if (lastCommittedId != null && lastCommittedId.equals(blob.getId())) {
             if (stageArea.isRemoved(fileName)) {
                 stageArea.unmarkRemoved(fileName);
-                System.out.println("File re-added: " + fileName);
             } else {
                 stageArea.unstageFile(fileName);
                 System.out.println("File has not been modified since the last commit.");
