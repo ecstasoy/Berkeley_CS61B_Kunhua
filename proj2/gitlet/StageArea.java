@@ -1,16 +1,19 @@
 package gitlet;
 
+import jdk.jshell.execution.Util;
+
 import java.io.Serializable;
 import java.io.File;
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
 
 public class StageArea implements Serializable, Dumpable {
     final static File stage = Repository.STAGE;
-    private Map<String, Blob> stagedFiles;
+    private final Map<String, Blob> stagedFiles;
+    private final Set<String> removedFiles;
 
     public StageArea() {
         stagedFiles = Utils.readObject(stage, StageArea.class).stagedFiles;
+        removedFiles = new HashSet<>();
     }
 
     public void stageFile(String fileName, File file) {
@@ -22,6 +25,14 @@ public class StageArea implements Serializable, Dumpable {
     public void unstageFile(String fileName) {
         stagedFiles.remove(fileName);
         Utils.writeObject(stage, this);
+    }
+
+    public void markRemoved(String fileName) {
+        removedFiles.add(fileName);
+    }
+
+    public Set<String> getRemovedFiles() {
+        return removedFiles;
     }
 
     public boolean isFileStaged(String fileName) {
