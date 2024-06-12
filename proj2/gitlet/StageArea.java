@@ -49,7 +49,6 @@ public class StageArea implements Serializable, Dumpable {
 
     public void unmarkRemoved(String fileName) {
         removedFiles.remove(fileName);
-        stageFile(fileName, join(Repository.CWD, fileName));
     }
 
     public boolean isRemoved(String fileName) {
