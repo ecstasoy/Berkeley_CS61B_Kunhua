@@ -113,7 +113,6 @@ public class Repository {
                 stageArea.unmarkRemoved(fileName);
             } else {
                 stageArea.unstageFile(fileName);
-                System.out.println("File has not been modified since the last commit.");
             }
             stageArea.save();
             System.exit(0);
@@ -154,6 +153,11 @@ public class Repository {
     public static void commit(String message) {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        if (message.isEmpty()) {
+            System.out.println("Please enter a commit message.");
             System.exit(0);
         }
 
