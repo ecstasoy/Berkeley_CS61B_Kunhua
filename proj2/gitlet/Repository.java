@@ -282,16 +282,20 @@ public class Repository {
             System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
-        for (String commitFile : plainFilenamesIn(COMMITS_DIR)) {
-            Commit commit = getCommit(commitFile);
-            System.out.println("===");
-            System.out.println("commit " + commit.getId());
-
-            // TODO: print merge commit
-
-            System.out.println("Date: " + commit.getTimestamp().toString());
-            System.out.println(commit.getMessage());
-            System.out.println();
+        for (String commitFolder : plainFilenamesIn(COMMITS_DIR)) {
+            File commitFile = join(COMMITS_DIR, commitFolder);
+            for (String commitId : plainFilenamesIn(commitFile)) {
+                Commit commit = getCommit(commitFolder + commitId);
+                System.out.println("===");
+                System.out.println("commit " + commit.getId());
+                if (commit.getParent().size() > 1) {
+                    System.out.println("Merge: " +
+                            commit.getParent().get(0).substring(0, 7) + " " +
+                            commit.getParent().get(1).substring(0, 7));
+                }
+                System.out.println("Date: " + commit.getFormattedTimestamp());
+                System.out.println(commit.getMessage() + "\n");
+            }
         }
     }
 

@@ -69,6 +69,7 @@ public class StageArea implements Serializable, Dumpable {
 
     public void clear() {
         stagedFiles.clear();
+        removedFiles.clear();
         writeObject(stage, this);
     }
 
