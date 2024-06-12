@@ -192,15 +192,21 @@ public class Repository {
             System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
+
+        currentCommit = getCurrentCommit();
+        stageArea = StageArea.getInstance();
+
         if (!stageArea.isFileStaged(fileName) && !currentCommit.getBlobs().containsKey(fileName)) {
             System.out.println("No reason to remove the file.");
             System.exit(0);
         }
         if (stageArea.isFileStaged(fileName)) {
             stageArea.unstageFile(fileName);
+            stageArea.save();
         }
         if (currentCommit.getBlobs().containsKey(fileName)) {
             stageArea.markRemoved(fileName);
+            stageArea.save();
             if (join(CWD, fileName).exists()) {
                 Utils.restrictedDelete(fileName);
             }
@@ -310,7 +316,8 @@ public class Repository {
             System.exit(0);
         }
         System.out.println("=== Branches ===");
-        String currentBranch = readContentsAsString(HEAD);
+        currentBranch = getCurrentBranch();
+        stageArea = StageArea.getInstance();
         for (String branch : plainFilenamesIn(refsHeads)) {
             if (branch.equals(currentBranch)) {
                 System.out.println("*" + branch);
