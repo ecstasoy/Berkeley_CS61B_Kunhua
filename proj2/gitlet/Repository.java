@@ -162,20 +162,19 @@ public class Repository {
 
         Commit currentCommit = getCurrentCommit();
         StageArea stageArea = StageArea.getInstance();
+        Boolean isChanged = !stageArea.getStagedFiles().isEmpty() || !stageArea.getRemovedFiles().isEmpty();
 
-        if (stageArea.getStagedFiles().isEmpty()) {
+        if (!isChanged) {
             System.out.println("No changes added to the commit.");
-            System.exit(0);
+            return;
         }
         String parentCommitId = currentCommit.getId();
         Map<String, Blob> stagedBlobs = new HashMap<>(stageArea.getStagedFiles());
         for (Blob blob : stagedBlobs.values()) {
             storeBlob(blob);
         }
-        Commit newCommit = createCommit(message, parentCommitId, stagedBlobs);
+        currentCommit = createCommit(message, parentCommitId, stagedBlobs);
         stageArea.clear();
-        stageArea.getRemovedFiles().clear();
-        currentCommit = newCommit;
         writeContents(HEAD, getCurrentBranch());
         writeContents(join(refsHeads, getCurrentBranch()), currentCommit.getId());
     }
