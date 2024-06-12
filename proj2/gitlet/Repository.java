@@ -3,10 +3,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Objects;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -17,9 +14,13 @@ import static gitlet.Utils.*;
  *  @author Kunhua Huang
  */
 public class Repository {
-    /** The current working directory. */
+    /**
+     * The current working directory.
+     */
     public static final File CWD = new File(System.getProperty("user.dir"));
-    /** The .gitlet directory. */
+    /**
+     * The .gitlet directory.
+     */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
 
     public static final File STAGE = join(GITLET_DIR, "stage");
@@ -32,20 +33,23 @@ public class Repository {
     public static final File remoteHeads = join(remote, "heads");
 
     public static Commit currentCommit;
+    public static String currentBranch;
     public static StageArea stageArea;
 
     public Repository() {
 
     }
 
-    /** init command */
+    /**
+     * init command
+     */
     public static void init() throws IOException {
         if (isInitialized()) {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
             System.exit(0);
         }
         GITLET_DIR.mkdir();
-        STAGE.mkdir();
+        STAGE.createNewFile();
         BLOBS_DIR.mkdir();
         COMMITS_DIR.mkdir();
         refs.mkdir();
@@ -57,6 +61,7 @@ public class Repository {
         initRefsHeads();
 
         stageArea = new StageArea();
+        stageArea.save();
     }
 
     public static boolean isInitialized() {
@@ -64,8 +69,15 @@ public class Repository {
     }
 
     public static void initCommit() {
-        Commit initCommit = new Commit("initial commit", null, new HashMap<>());
+        // Use an empty list to signify no parents for the initial commit
+        List<String> noParents = new ArrayList<>();
+        Map<String, Blob> noBlobs = new HashMap<>(); // No files are tracked in the initial commit
+
+        // Creating the initial commit with no parents and no blobs
+        Commit initCommit = new Commit("initial commit", noParents, noBlobs);
         currentCommit = initCommit;
+
+        // Save the newly created commit to storage
         saveCommit(initCommit);
     }
 
@@ -78,7 +90,9 @@ public class Repository {
         writeContents(master, currentCommit.getId());
     }
 
-    /** add command */
+    /**
+     * add command
+     */
     public static void add(String fileName) {
         File file = join(CWD, fileName);
         if (!file.exists()) {
@@ -91,6 +105,8 @@ public class Repository {
         }
 
         Blob blob = new Blob(file);
+        currentCommit = getCurrentCommit();
+        stageArea = StageArea.getInstance();
         String lastCommittedId = currentCommit.getBlobs().get(fileName);
         if (lastCommittedId != null && lastCommittedId.equals(blob.getId())) {
             stageArea.unstageFile(fileName);
@@ -101,41 +117,62 @@ public class Repository {
         storeBlob(blob);
     }
 
-    public static void storeBlob(Blob blob) {
+    private static void storeBlob(Blob blob) {
         File blobFile = join(BLOBS_DIR, blob.getId());
         writeObject(blobFile, blob);
     }
 
-    /** commit command */
+    private static Commit getCurrentCommit() {
+        if (currentCommit == null) {
+            File currentCommitPath = join(refsHeads, readContentsAsString(HEAD));
+            currentCommit = getCommit(readContentsAsString(currentCommitPath));
+        }
+        return currentCommit;
+    }
+
+    private static void clearCurrentCommitCache() {
+        currentCommit = null;  // Call this method when a new commit is made
+    }
+
+    private static String getCurrentBranch() {
+        if (currentBranch == null) {
+            currentBranch = readContentsAsString(HEAD);
+        }
+        return currentBranch;
+    }
+
+    /**
+     * commit command
+     */
     public static void commit(String message) {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
+
+        Commit currentCommit = getCurrentCommit();
+        StageArea stageArea = StageArea.getInstance();
+
         if (stageArea.getStagedFiles().isEmpty()) {
             System.out.println("No changes added to the commit.");
             System.exit(0);
         }
         String parentCommitId = currentCommit.getId();
-        Map<String, Path> stagedFiles = new HashMap<>();
-        for (Map.Entry<String, Blob> entry : stageArea.getStagedFiles().entrySet()) {
-            stagedFiles.put(entry.getKey(), join(BLOBS_DIR, entry.getValue().getId()).toPath());
+        Map<String, Blob> stagedBlobs = new HashMap<>(stageArea.getStagedFiles());
+        for (Blob blob : stagedBlobs.values()) {
+            storeBlob(blob);
         }
-        Commit newCommit = createCommit(message, parentCommitId, stagedFiles);
+        Commit newCommit = createCommit(message, parentCommitId, stagedBlobs);
         stageArea.clear();
+        stageArea.getRemovedFiles().clear();
         currentCommit = newCommit;
-        writeContents(HEAD, currentCommit.getId());
-        writeContents(join(refsHeads, "master"), currentCommit.getId());
+        writeContents(HEAD, getCurrentBranch());
+        writeContents(join(refsHeads, getCurrentBranch()), currentCommit.getId());
     }
 
-    public static Commit createCommit(String commitMessage, String parentCommitId, Map<String, Path> stagedFiles) {
-        Map<String, Blob> blobs = new HashMap<>();
-        for (Map.Entry<String, Path> entry : stagedFiles.entrySet()) {
-            Blob blob = new Blob(entry.getValue().toFile());
-            blobs.put(entry.getKey(), blob);
-        }
+    public static Commit createCommit(String commitMessage, String parentCommitId, Map<String, Blob> blobs) {
         Commit newCommit = new Commit(commitMessage, parentCommitId, blobs);
-        newCommit.setParent(parentCommitId);
+        newCommit.setParent(Collections.singletonList(parentCommitId));
         saveCommit(newCommit);
         return newCommit;
     }
@@ -148,7 +185,9 @@ public class Repository {
         writeObject(commitFile, commit);
     }
 
-    /** rm command */
+    /**
+     * rm command
+     */
     public static void rm(String fileName) {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
@@ -163,26 +202,39 @@ public class Repository {
         }
         if (currentCommit.getBlobs().containsKey(fileName)) {
             stageArea.markRemoved(fileName);
-            Utils.restrictedDelete(fileName);
+            if (join(CWD, fileName).exists()) {
+                Utils.restrictedDelete(fileName);
+            }
         }
     }
 
-    /** log command */
+    /**
+     * log command
+     */
     public static void log() {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
-        Commit current = currentCommit;
-        while (current != null) {
+        currentCommit = getCurrentCommit();
+        while (currentCommit != null) {
             System.out.println("===");
-            System.out.println("commit " + current.getId());
+            System.out.println("commit " + currentCommit.getId());
 
-            // TODO: print merge commit
+            // Check and print parents for merge commits
+            if (currentCommit.getParent().size() > 1) {
+                System.out.println("Merge: " +
+                        currentCommit.getParent().get(0).substring(0, 7) + " " +
+                        currentCommit.getParent().get(1).substring(0, 7));
+            }
 
-            System.out.println("Date: " + current.getTimestamp().toString());
-            System.out.println(current.getMessage());
-            current = getCommit(current.getParent());
+            System.out.println("Date: " + currentCommit.getFormattedTimestamp());
+            System.out.println(currentCommit.getMessage() + "\n");
+            if (currentCommit.getParent().size() == 1) {
+                currentCommit = getCommit(currentCommit.getParent().get(0));
+            } else {
+                currentCommit = null;
+            }
         }
     }
 
@@ -207,7 +259,9 @@ public class Repository {
         return null;
     }
 
-    /** global-log command */
+    /**
+     * global-log command
+     */
     public static void globalLog() {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
@@ -226,7 +280,9 @@ public class Repository {
         }
     }
 
-    /** find command */
+    /**
+     * find command
+     */
     public static void find(String commitMessage) {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
@@ -246,7 +302,9 @@ public class Repository {
         }
     }
 
-    /** status command */
+    /**
+     * status command
+     */
     public static void status() {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
@@ -277,40 +335,43 @@ public class Repository {
         // TODO: print untracked files
     }
 
-    /** checkout command */
+    /**
+     * checkout command
+     */
     public static void checkoutFile(String fileName) {
+        File file = join(CWD, fileName);
+
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
 
-        String currentBranch = readContentsAsString(HEAD);
-        String headCommitId = readContentsAsString(join(refsHeads, currentBranch));
-        Commit headCommit = getCommit(headCommitId);
+        currentCommit = getCurrentCommit();
+        File blobFile = join(BLOBS_DIR, currentCommit.getBlobs().get(fileName));
 
         if (!currentCommit.getBlobs().containsKey(fileName)) {
             System.out.println("File does not exist in that commit.");
             System.exit(0);
         }
-        Blob blob = new Blob(join(BLOBS_DIR, headCommit.getBlobs().get(fileName)));
-        File file = join(CWD, fileName);
+        Blob blob = readObject(blobFile, Blob.class);
         writeContents(file, blob.getContentBytes());
     }
 
     public static void checkoutCommit(String commitId, String fileName) {
+        File file = join(CWD, fileName);
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
 
         Commit commit = getCommit(commitId);
+        File blobFile = join(BLOBS_DIR, commit.getBlobs().get(fileName));
 
         if (!commit.getBlobs().containsKey(fileName)) {
             System.out.println("File does not exist in that commit.");
             System.exit(0);
         }
-        Blob blob = new Blob(join(BLOBS_DIR, commit.getBlobs().get(fileName)));
-        File file = join(CWD, fileName);
+        Blob blob = readObject(blobFile, Blob.class);
         writeContents(file, blob.getContentBytes());
     }
 
@@ -329,9 +390,8 @@ public class Repository {
             System.exit(0);
         }
 
-        String currentBranch = readContentsAsString(HEAD);
-        String currentCommitId = readContentsAsString(join(refsHeads, currentBranch));
-        Commit currentCommit = getCommit(currentCommitId);
+        currentBranch = getCurrentBranch();
+        currentCommit = getCurrentCommit();
 
         String targetCommitId = readContentsAsString(join(refsHeads, branchName));
         Commit targetCommit = getCommit(targetCommitId);
@@ -357,7 +417,9 @@ public class Repository {
         writeContents(HEAD, branchName);
     }
 
-    /** branch command */
+    /**
+     * branch command
+     */
     public static void branch(String branchName) {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
@@ -367,12 +429,15 @@ public class Repository {
             System.out.println("A branch with that name already exists.");
             System.exit(0);
         }
-        String currentBranch = readContentsAsString(HEAD);
+        currentBranch = getCurrentBranch();
         String currentCommitId = readContentsAsString(join(refsHeads, currentBranch));
         writeContents(join(refsHeads, branchName), currentCommitId);
+        writeContents(HEAD, branchName);
     }
 
-    /** rm-branch command */
+    /**
+     * rm-branch command
+     */
     public static void rmBranch(String branchName) {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
@@ -390,7 +455,9 @@ public class Repository {
         branch.delete();
     }
 
-    /** reset command */
+    /**
+     * reset command
+     */
     public static void reset(String commitId) {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
@@ -398,6 +465,7 @@ public class Repository {
         }
 
         Commit commit = getCommit(commitId);
+        currentCommit = getCurrentCommit();
 
         for (String fileName : currentCommit.getBlobs().keySet()) {
             if (!commit.getBlobs().containsKey(fileName)) {
@@ -406,10 +474,133 @@ public class Repository {
         }
         for (String fileName : commit.getBlobs().keySet()) {
             Blob blob = new Blob(join(BLOBS_DIR, commit.getBlobs().get(fileName)));
+            storeBlob(blob);
             File file = join(CWD, fileName);
             writeContents(file, blob.getContentBytes());
         }
         writeContents(join(refsHeads, readContentsAsString(HEAD)), commitId);
         currentCommit = commit;
     }
+
+    /** merge command */
+    public static void merge(String branchName) {
+        if (!isInitialized()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        if (!stageArea.getStagedFiles().isEmpty() || !stageArea.getRemovedFiles().isEmpty()) {
+            System.out.println("You have uncommitted changes.");
+            System.exit(0);
+        }
+
+        if (!plainFilenamesIn(refsHeads).contains(branchName)) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+
+        if (branchName.equals(readContentsAsString(HEAD))) {
+            System.out.println("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+
+        Commit splitPoint = findSplitPoint(branchName);
+
+        if (splitPoint == null) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+            System.exit(0);
+        }
+
+        Commit currentCommit = getCommit(readContentsAsString(join(refsHeads, readContentsAsString(HEAD))));
+        Commit givenCommit = getCommit(readContentsAsString(join(refsHeads, branchName)));
+
+        for (String fileName : splitPoint.getBlobs().keySet()) {
+            if (!currentCommit.getBlobs().containsKey(fileName) && givenCommit.getBlobs().containsKey(fileName)) {
+                checkoutCommit(givenCommit.getId(), fileName);
+                stageArea.stageFile(fileName, join(CWD, fileName));
+            }
+        }
+
+        for (String fileName : splitPoint.getBlobs().keySet()) {
+            boolean isFileInCurrentCommit = currentCommit.getBlobs().containsKey(fileName);
+            boolean isFileInGivenCommit = givenCommit.getBlobs().containsKey(fileName);
+            boolean isFileModifiedInCurrentCommit = isFileInCurrentCommit
+                    && !currentCommit.getBlobs().get(fileName).equals(splitPoint.getBlobs().get(fileName));
+            boolean isFileModifiedInGivenCommit = isFileInGivenCommit
+                    && !givenCommit.getBlobs().get(fileName).equals(splitPoint.getBlobs().get(fileName));
+
+            if (!isFileModifiedInCurrentCommit && isFileModifiedInGivenCommit || isFileInCurrentCommit && !isFileInGivenCommit) {
+                handleMergeConflict(fileName, currentCommit, givenCommit);
+            } else if (isFileModifiedInCurrentCommit && isFileModifiedInGivenCommit) {
+                if (currentCommit.getBlobs().get(fileName).equals(givenCommit.getBlobs().get(fileName))) {
+                    checkoutAndStageFile(fileName, givenCommit);
+                } else {
+                    handleMergeConflict(fileName, currentCommit, givenCommit);
+                }
+            } else {
+                continue;
+            }
+        }
+    }
+
+    private static Commit findSplitPoint(String branchName) {
+        String currentBranch = readContentsAsString(HEAD);
+        String currentCommitId = readContentsAsString(join(refsHeads, currentBranch));
+        String targetCommitId = readContentsAsString(join(refsHeads, branchName));
+        Commit currentCommit = getCommit(currentCommitId);
+        Commit targetCommit = getCommit(targetCommitId);
+
+        List<String> currentAncestors = getAncestors(currentCommit);
+        List<String> targetAncestors = getAncestors(targetCommit);
+
+        for (String ancestor : currentAncestors) {
+            if (targetAncestors.contains(ancestor)) {
+                return getCommit(ancestor);
+            }
+        }
+        return null;
+    }
+
+    private static List<String> getAncestors(Commit commit) {
+        List<String> ancestors = new ArrayList<>();
+        while (commit != null) {
+            ancestors.add(commit.getId());
+            commit = getCommit(commit.getParent().get(0));
+        }
+        return ancestors;
+    }
+
+    private static void handleMergeConflict(String fileName, Commit currentCommit, Commit givenCommit) {
+        File file = join(CWD, fileName);
+        if (currentCommit.getBlobs().containsKey(fileName) && givenCommit.getBlobs().containsKey(fileName)) {
+            Blob currentBlob = new Blob(join(BLOBS_DIR, currentCommit.getBlobs().get(fileName)));
+            Blob givenBlob = new Blob(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName)));
+            writeContents(file, "<<<<<<< HEAD\n");
+            writeContents(file, currentBlob.getContentBytes());
+            writeContents(file, "\n=======\n");
+            writeContents(file, givenBlob.getContentBytes());
+            writeContents(file, "\n>>>>>>>\n");
+        } else if (currentCommit.getBlobs().containsKey(fileName)) {
+            Blob currentBlob = new Blob(join(BLOBS_DIR, currentCommit.getBlobs().get(fileName)));
+            byte[] content = "<<<<<<< HEAD\n".getBytes();
+            writeContents(file, "<<<<<<< HEAD\n");
+            writeContents(file, currentBlob.getContentBytes());
+            writeContents(file, "\n=======\n");
+            writeContents(file, "\n>>>>>>>\n");
+        } else {
+            Blob givenBlob = new Blob(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName)));
+            byte[] content = "<<<<<<< HEAD\n".getBytes();
+            writeContents(file, "<<<<<<< HEAD\n");
+            writeContents(file, "\n=======\n");
+            writeContents(file, givenBlob.getContentBytes());
+            writeContents(file, "\n>>>>>>>\n");
+        }
+        stageArea.stageFile(fileName, file);
+    }
+
+    private static void checkoutAndStageFile(String fileName, Commit commit) {
+        checkoutCommit(commit.getId(), fileName);
+        stageArea.stageFile(fileName, join(CWD, fileName));
+    }
+
 }

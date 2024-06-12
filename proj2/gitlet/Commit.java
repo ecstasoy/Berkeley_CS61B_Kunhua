@@ -1,9 +1,7 @@
 package gitlet;
 
 import java.io.Serializable;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Date;
+import java.util.*;
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class does at a high level.
@@ -22,23 +20,29 @@ public class Commit implements Serializable, Dumpable {
     /** The message of this Commit. */
     private String message;
     private Date timestamp;
-    private String parent;
+    private List<String> parents;
     private Map<String, String> tracked;
 
+    // Constructor for normal commit
     public Commit(String message, String parent, Map<String, Blob> blobs) {
-        this.id = generateId();
+        this(message, Arrays.asList(parent), blobs);
+    }
+
+    // Constructor for merge commit
+    public Commit(String message, List<String> parents, Map<String, Blob> blobs) {
         this.message = message;
-        this.parent = parent;
+        this.parents = new ArrayList<>(parents);
         this.tracked = new HashMap<>();
         for (Map.Entry<String, Blob> entry : blobs.entrySet()) {
             tracked.put(entry.getKey(), entry.getValue().getId());
         }
         this.timestamp = new Date();
+        this.id = generateId();
     }
 
     public String generateId() {
         assert timestamp != null;
-        return Utils.sha1(message + timestamp.toString(), parent, tracked);
+        return Utils.sha1(message + timestamp.toString());
     }
 
     public String getId() {
@@ -53,12 +57,17 @@ public class Commit implements Serializable, Dumpable {
         return timestamp;
     }
 
-    public String getParent() {
-        return parent;
+    public String getFormattedTimestamp() {
+        // Setting the locale to US to ensure English names for days and months
+        return String.format(Locale.US, "%ta %tb %td %tT %tY %tz", timestamp, timestamp, timestamp, timestamp, timestamp, timestamp);
     }
 
-    public void setParent(String parent) {
-        this.parent = parent;
+    public List<String> getParent() {
+        return parents;
+    }
+
+    public void setParent(List<String> parents) {
+        this.parents = parents;
     }
 
     public Map<String, String> getBlobs() {
@@ -67,11 +76,12 @@ public class Commit implements Serializable, Dumpable {
 
 
     @Override
-    public void dump() {
+    public boolean dump() {
         System.out.println("===");
         System.out.println("commit " + id);
         System.out.println("Date: " + timestamp.toString());
         System.out.println(message);
         System.out.println();
+        return false;
     }
 }

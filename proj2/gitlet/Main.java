@@ -73,6 +73,10 @@ public class Main {
                 validArgs(args, 2);
                 Repository.reset(args[1]);
                 break;
+            case "merge":
+                validArgs(args, 2);
+                Repository.merge(args[1]);
+                break;
         }
     }
 

@@ -1,30 +1,47 @@
 package gitlet;
 
-import jdk.jshell.execution.Util;
-
 import java.io.Serializable;
 import java.io.File;
 import java.util.*;
 
+import static gitlet.Utils.readObject;
+import static gitlet.Utils.writeObject;
+
 public class StageArea implements Serializable, Dumpable {
-    final static File stage = Repository.STAGE;
+    private final static File stage = Repository.STAGE;
+    private static StageArea instance;
     private final Map<String, Blob> stagedFiles;
     private final Set<String> removedFiles;
 
     public StageArea() {
-        stagedFiles = Utils.readObject(stage, StageArea.class).stagedFiles;
+        stagedFiles = new HashMap<>();
         removedFiles = new HashSet<>();
+    }
+
+    public static StageArea getInstance() {
+        if (instance == null) {
+            if (stage.exists()) {
+                instance = readObject(stage, StageArea.class);
+            } else {
+                instance = new StageArea();
+            }
+        }
+        return instance;
+    }
+
+    public void save() {
+        writeObject(Repository.STAGE, this);
     }
 
     public void stageFile(String fileName, File file) {
         Blob blob = new Blob(file);
         stagedFiles.put(fileName, blob);
-        Utils.writeObject(stage, this);
+        writeObject(stage, this);
     }
 
     public void unstageFile(String fileName) {
         stagedFiles.remove(fileName);
-        Utils.writeObject(stage, this);
+        writeObject(stage, this);
     }
 
     public void markRemoved(String fileName) {
@@ -45,15 +62,16 @@ public class StageArea implements Serializable, Dumpable {
 
     public void clear() {
         stagedFiles.clear();
-        Utils.writeObject(stage, this);
+        writeObject(stage, this);
     }
 
     @Override
-    public void dump() {
+    public boolean dump() {
         System.out.println("Stage Area: ");
         for (Map.Entry<String, Blob> entry : stagedFiles.entrySet()) {
             System.out.println("File Name: " + entry.getKey());
             entry.getValue().dump();
         }
+        return false;
     }
 }
