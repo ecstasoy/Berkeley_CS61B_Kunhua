@@ -108,19 +108,18 @@ public class Repository {
         stageArea = StageArea.getInstance();
         String lastCommittedId = currentCommit.getBlobs().get(fileName);
 
-        if (lastCommittedId != null && lastCommittedId.equals(blob.getId())) {
-            if (stageArea.isRemoved(fileName)) {
-                stageArea.unmarkRemoved(fileName);
-            } else {
-                stageArea.unstageFile(fileName);
-            }
-            stageArea.save();
-            System.exit(0);
+        if (lastCommittedId != null && lastCommittedId.equals(blob.getId()) && !stageArea.isRemoved(fileName)) {
+            return;
         }
 
-        stageArea.stageFile(fileName, file);
+        if (stageArea.isRemoved(fileName)) {
+            stageArea.unmarkRemoved(fileName);
+        } else {
+            stageArea.stageFile(fileName, file);
+            storeBlob(blob);
+        }
+
         stageArea.save();
-        storeBlob(blob);
     }
 
     private static void storeBlob(Blob blob) {
