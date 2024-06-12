@@ -168,6 +168,7 @@ public class Repository {
             System.out.println("No changes added to the commit.");
             return;
         }
+
         String parentCommitId = currentCommit.getId();
         Map<String, Blob> stagedBlobs = new HashMap<>(stageArea.getStagedFiles());
         for (Blob blob : stagedBlobs.values()) {
@@ -281,21 +282,36 @@ public class Repository {
             System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
+
+        List<Commit> commits = new ArrayList<>();
+
         for (String commitFolder : plainFilenamesIn(COMMITS_DIR)) {
-            File commitFile = join(COMMITS_DIR, commitFolder);
-            for (String commitId : plainFilenamesIn(commitFile)) {
-                Commit commit = getCommit(commitFolder + commitId);
-                System.out.println("===");
-                System.out.println("commit " + commit.getId());
-                if (commit.getParent().size() > 1) {
-                    System.out.println("Merge: " +
-                            commit.getParent().get(0).substring(0, 7) + " " +
-                            commit.getParent().get(1).substring(0, 7));
-                }
-                System.out.println("Date: " + commit.getFormattedTimestamp());
-                System.out.println(commit.getMessage() + "\n");
+            File commitDir = join(COMMITS_DIR, commitFolder);
+            for (String commitId : plainFilenamesIn(commitDir)) {
+                Commit commit = readObject(join(commitDir, commitId), Commit.class);
+                commits.add(commit);
             }
         }
+
+        Collections.sort(commits, new Comparator<Commit>() {
+            @Override
+            public int compare(Commit c1, Commit c2) {
+                return c1.getTimestamp().compareTo(c2.getTimestamp());
+            }
+        });
+
+        for (Commit commit : commits) {
+            System.out.println("===");
+            System.out.println("commit " + commit.getId());
+            if (commit.getParent().size() > 1) {
+                System.out.println("Merge: " +
+                        commit.getParent().get(0).substring(0, 7) + " " +
+                        commit.getParent().get(1).substring(0, 7));
+            }
+            System.out.println("Date: " + commit.getFormattedTimestamp());
+            System.out.println(commit.getMessage() + "\n");
+        }
+
     }
 
     /**
