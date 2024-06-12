@@ -107,12 +107,21 @@ public class Repository {
         currentCommit = getCurrentCommit();
         stageArea = StageArea.getInstance();
         String lastCommittedId = currentCommit.getBlobs().get(fileName);
+
         if (lastCommittedId != null && lastCommittedId.equals(blob.getId())) {
-            stageArea.unstageFile(fileName);
-            System.out.println("File has not been modified since the last commit.");
+            if (stageArea.isRemoved(fileName)) {
+                stageArea.unmarkRemoved(fileName);
+                System.out.println("File re-added: " + fileName);
+            } else {
+                stageArea.unstageFile(fileName);
+                System.out.println("File has not been modified since the last commit.");
+            }
+            stageArea.save();
             System.exit(0);
         }
+
         stageArea.stageFile(fileName, file);
+        stageArea.save();
         storeBlob(blob);
     }
 
@@ -202,15 +211,14 @@ public class Repository {
         }
         if (stageArea.isFileStaged(fileName)) {
             stageArea.unstageFile(fileName);
-            stageArea.save();
         }
         if (currentCommit.getBlobs().containsKey(fileName)) {
             stageArea.markRemoved(fileName);
-            stageArea.save();
             if (join(CWD, fileName).exists()) {
                 Utils.restrictedDelete(fileName);
             }
         }
+        stageArea.save();
     }
 
     /**

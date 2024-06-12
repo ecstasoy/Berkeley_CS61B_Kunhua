@@ -4,8 +4,7 @@ import java.io.Serializable;
 import java.io.File;
 import java.util.*;
 
-import static gitlet.Utils.readObject;
-import static gitlet.Utils.writeObject;
+import static gitlet.Utils.*;
 
 public class StageArea implements Serializable, Dumpable {
     private final static File stage = Repository.STAGE;
@@ -46,6 +45,15 @@ public class StageArea implements Serializable, Dumpable {
 
     public void markRemoved(String fileName) {
         removedFiles.add(fileName);
+    }
+
+    public void unmarkRemoved(String fileName) {
+        removedFiles.remove(fileName);
+        stageFile(fileName, join(Repository.CWD, fileName));
+    }
+
+    public boolean isRemoved(String fileName) {
+        return removedFiles.contains(fileName);
     }
 
     public Set<String> getRemovedFiles() {
