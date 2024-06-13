@@ -447,7 +447,7 @@ public class Repository {
         for (String fileName : targetCommit.getBlobs().keySet()) {
             File file = join(CWD, fileName);
             if (file.exists() && !currentCommit.getBlobs().containsKey(fileName)) {
-                System.out.println("There is an untracked file in the way; delete it, or add it first.");
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
         }
