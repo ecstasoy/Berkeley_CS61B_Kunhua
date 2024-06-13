@@ -558,6 +558,7 @@ public class Repository {
             writeContents(file, blob.getContentBytes());
         }
 
+        stageArea = StageArea.getInstance();
         stageArea.clear();
         writeContents(join(refsHeads, readContentsAsString(HEAD)), commitId);
         currentCommit = commit;
