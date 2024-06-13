@@ -71,6 +71,7 @@ public class Repository {
     public static void initCommit() {
         // Use an empty list to signify no parents for the initial commit
         List<String> noParents = new ArrayList<>();
+        noParents.add(null);
         Map<String, Blob> noBlobs = new HashMap<>(); // No files are tracked in the initial commit
 
         // Creating the initial commit with no parents and no blobs
