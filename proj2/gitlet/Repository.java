@@ -408,6 +408,12 @@ public class Repository {
         }
 
         Commit commit = getCommit(commitId);
+
+        if (commit.getBlobs().get(fileName) == null) {
+            System.out.println("File does not exist in that commit.");
+            System.exit(0);
+        }
+
         File blobFile = join(BLOBS_DIR, commit.getBlobs().get(fileName));
 
         if (!commit.getBlobs().containsKey(fileName)) {
