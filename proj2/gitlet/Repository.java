@@ -670,7 +670,12 @@ public class Repository {
         List<String> ancestors = new ArrayList<>();
         while (commit != null) {
             ancestors.add(commit.getId());
-            commit = getCommit(commit.getParent().get(0));
+            String parent = commit.getParent().get(0);
+            if (parent == null) {
+                break;
+            } else {
+                commit = getCommit(parent);
+            }
         }
         return ancestors;
     }
