@@ -606,47 +606,58 @@ public class Repository {
             System.exit(0);
         }
 
+        currentCommit = getCurrentCommit();
+        Commit givenCommit = getCommit(readContentsAsString(join(refsHeads, branchName)));
         Commit splitPoint = findSplitPoint(branchName);
+        Boolean conflict = false;
 
         if (splitPoint == null) {
             System.out.println("Given branch is an ancestor of the current branch.");
             System.exit(0);
         }
 
-        currentCommit = getCurrentCommit();
-        Commit givenCommit = getCommit(readContentsAsString(join(refsHeads, branchName)));
+        Map<String, String> currentFiles = currentCommit.getBlobs();
+        Map<String, String> givenFiles = givenCommit.getBlobs();
+        Map<String, String> splitFiles = splitPoint.getBlobs();
 
-        for (String fileName : splitPoint.getBlobs().keySet()) {
-            if (!currentCommit.getBlobs().containsKey(fileName) && givenCommit.getBlobs().containsKey(fileName)) {
-                checkoutCommit(givenCommit.getId(), fileName);
-                stageArea.stageFile(fileName, join(CWD, fileName));
+        // Determine actions for each file in the three commits
+        Set<String> allFiles = new HashSet<>(currentFiles.keySet());
+        allFiles.addAll(givenFiles.keySet());
+        allFiles.addAll(splitFiles.keySet());
+
+        for (String file : allFiles) {
+            boolean inCurrent = currentFiles.containsKey(file);
+            boolean inGiven = givenFiles.containsKey(file);
+            boolean inSplit = splitFiles.containsKey(file);
+
+            String currentVersion = inCurrent ? currentFiles.get(file) : null;
+            String givenVersion = inGiven ? givenFiles.get(file) : null;
+            String splitVersion = inSplit ? splitFiles.get(file) : null;
+
+            if (inCurrent && inGiven && !givenVersion.equals(currentVersion) && !givenVersion.equals(splitVersion) && !currentVersion.equals(splitVersion)) {
+                handleMergeConflict(file, currentCommit, givenCommit);
+                conflict = true;
+            } else if (inGiven && (!inCurrent || !givenVersion.equals(splitVersion))) {
+                checkoutAndStageFile(file, givenCommit);
+            } else if (!inGiven && inSplit && inCurrent && currentVersion.equals(splitVersion)) {
+                // File deleted in the given branch but unchanged from split to current
+                Utils.restrictedDelete(join(CWD, file));
+                stageArea.unstageFile(file);
+                stageArea.save();
             }
         }
 
-        stageArea.save();
+        // Creating a merge commit
+        List<String> parents = Arrays.asList(currentCommit.getId(), givenCommit.getId());
+        String message = "Merged " + branchName + " into " + readContentsAsString(HEAD);
+        Commit mergeCommit = new Commit(message, parents, stageArea.getStagedFiles());
+        saveCommit(mergeCommit);
+        writeContents(join(refsHeads, readContentsAsString(HEAD)), mergeCommit.getId());
 
-        for (String fileName : splitPoint.getBlobs().keySet()) {
-            boolean isFileInCurrentCommit = currentCommit.getBlobs().containsKey(fileName);
-            boolean isFileInGivenCommit = givenCommit.getBlobs().containsKey(fileName);
-            boolean isFileModifiedInCurrentCommit = isFileInCurrentCommit
-                    && !currentCommit.getBlobs().get(fileName).equals(splitPoint.getBlobs().get(fileName));
-            boolean isFileModifiedInGivenCommit = isFileInGivenCommit
-                    && !givenCommit.getBlobs().get(fileName).equals(splitPoint.getBlobs().get(fileName));
-
-            if (!isFileModifiedInCurrentCommit && isFileModifiedInGivenCommit || isFileInCurrentCommit && !isFileInGivenCommit) {
-                handleMergeConflict(fileName, currentCommit, givenCommit);
-            } else if (isFileModifiedInCurrentCommit && isFileModifiedInGivenCommit) {
-                if (currentCommit.getBlobs().get(fileName).equals(givenCommit.getBlobs().get(fileName))) {
-                    checkoutAndStageFile(fileName, givenCommit);
-                    System.out.println("Merge" + branchName + "into" + currentBranch + ".");
-                } else {
-                    System.out.println("Encountered a merge conflict.");
-                    handleMergeConflict(fileName, currentCommit, givenCommit);
-                }
-            } else {
-                continue;
-            }
+        if (conflict) {
+            System.out.println("Encountered a merge conflict.");
         }
+
     }
 
     private static Commit findSplitPoint(String branchName) {
@@ -711,6 +722,7 @@ public class Repository {
         stageArea = StageArea.getInstance();
         stageArea.stageFile(fileName, join(CWD, fileName));
         stageArea.save();
+
     }
 
 }
