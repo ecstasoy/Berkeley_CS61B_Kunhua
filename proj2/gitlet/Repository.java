@@ -713,7 +713,7 @@ public class Repository {
                 currentContents +
                 "=======\n" +
                 givenContents +
-                ">>>>>>>";
+                ">>>>>>>\n";
 
         writeContents(file, conflictContent);
         stageArea.stageFile(fileName, file);
