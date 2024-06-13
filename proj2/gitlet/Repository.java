@@ -699,21 +699,22 @@ public class Repository {
         Blob givenBlob = readObject(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName)), Blob.class);
         stageArea = StageArea.getInstance();
         if (currentCommit.getBlobs().containsKey(fileName) && givenCommit.getBlobs().containsKey(fileName)) {
-            writeContents(file, "<<<<<<< HEAD\n");
-            writeContents(file, currentBlob.getContentBytes());
-            writeContents(file, "\n=======\n");
-            writeContents(file, givenBlob.getContentBytes());
-            writeContents(file, "\n>>>>>>>\n");
+            String contents = "<<<<<<< HEAD\n" +
+                    new String(currentBlob.getContentBytes()) + "\n" +
+                    "=======\n" + new String(givenBlob.getContentBytes()) +
+                    "\n>>>>>>>\n";
+            writeContents(file, contents);
         } else if (currentCommit.getBlobs().containsKey(fileName)) {
-            writeContents(file, "<<<<<<< HEAD\n");
-            writeContents(file, currentBlob.getContentBytes());
-            writeContents(file, "\n=======\n");
-            writeContents(file, "\n>>>>>>>\n");
+            String contents = "<<<<<<< HEAD\n" +
+                    new String(currentBlob.getContentBytes()) + "\n" +
+                    "=======" +
+                    "\n>>>>>>>\n";
+            writeContents(file, contents);
         } else {
-            writeContents(file, "<<<<<<< HEAD\n");
-            writeContents(file, "\n=======\n");
-            writeContents(file, givenBlob.getContentBytes());
-            writeContents(file, "\n>>>>>>>\n");
+            String contents = "<<<<<<< HEAD\n" +
+                    "=======\n" + new String(givenBlob.getContentBytes()) +
+                    "\n>>>>>>>\n";
+            writeContents(file, contents);
         }
         stageArea.stageFile(fileName, file);
         stageArea.save();
