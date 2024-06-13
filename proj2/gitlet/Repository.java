@@ -638,7 +638,9 @@ public class Repository {
             } else if (isFileModifiedInCurrentCommit && isFileModifiedInGivenCommit) {
                 if (currentCommit.getBlobs().get(fileName).equals(givenCommit.getBlobs().get(fileName))) {
                     checkoutAndStageFile(fileName, givenCommit);
+                    System.out.println("Merge" + branchName + "into" + currentBranch + ".");
                 } else {
+                    System.out.println("Encountered a merge conflict.");
                     handleMergeConflict(fileName, currentCommit, givenCommit);
                 }
             } else {
