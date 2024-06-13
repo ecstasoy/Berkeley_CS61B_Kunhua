@@ -661,9 +661,6 @@ public class Repository {
             System.out.println("Encountered a merge conflict.");
         }
 
-        System.out.println("DEBUG: Final conflict file content:");
-        System.out.println(readContentsAsString(join(CWD, "f.txt")));
-
     }
 
     private static Commit findSplitPoint(String branchName) {
