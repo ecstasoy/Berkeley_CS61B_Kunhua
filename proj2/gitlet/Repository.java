@@ -3,6 +3,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static gitlet.Utils.*;
@@ -660,6 +661,9 @@ public class Repository {
             System.out.println("Encountered a merge conflict.");
         }
 
+        System.out.println("DEBUG: Final conflict file content:");
+        System.out.println(readContentsAsString(join(CWD, "f.txt")));
+
     }
 
     private static Commit findSplitPoint(String branchName) {
@@ -724,7 +728,6 @@ public class Repository {
         stageArea = StageArea.getInstance();
         stageArea.stageFile(fileName, join(CWD, fileName));
         stageArea.save();
-
     }
 
 }
