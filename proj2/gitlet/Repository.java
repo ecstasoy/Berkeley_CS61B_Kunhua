@@ -589,6 +589,8 @@ public class Repository {
             System.exit(0);
         }
 
+        stageArea = StageArea.getInstance();
+
         if (!stageArea.getStagedFiles().isEmpty() || !stageArea.getRemovedFiles().isEmpty()) {
             System.out.println("You have uncommitted changes.");
             System.exit(0);
@@ -620,6 +622,8 @@ public class Repository {
                 stageArea.stageFile(fileName, join(CWD, fileName));
             }
         }
+
+        stageArea.save();
 
         for (String fileName : splitPoint.getBlobs().keySet()) {
             boolean isFileInCurrentCommit = currentCommit.getBlobs().containsKey(fileName);
