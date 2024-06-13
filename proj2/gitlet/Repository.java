@@ -613,7 +613,7 @@ public class Repository {
             System.exit(0);
         }
 
-        Commit currentCommit = getCommit(readContentsAsString(join(refsHeads, readContentsAsString(HEAD))));
+        currentCommit = getCurrentCommit();
         Commit givenCommit = getCommit(readContentsAsString(join(refsHeads, branchName)));
 
         for (String fileName : splitPoint.getBlobs().keySet()) {
@@ -648,11 +648,10 @@ public class Repository {
     }
 
     private static Commit findSplitPoint(String branchName) {
-        String currentBranch = readContentsAsString(HEAD);
-        String currentCommitId = readContentsAsString(join(refsHeads, currentBranch));
         String targetCommitId = readContentsAsString(join(refsHeads, branchName));
-        Commit currentCommit = getCommit(currentCommitId);
         Commit targetCommit = getCommit(targetCommitId);
+        currentCommit = getCurrentCommit();
+        currentBranch = getCurrentBranch();
 
         List<String> currentAncestors = getAncestors(currentCommit);
         List<String> targetAncestors = getAncestors(targetCommit);
@@ -681,35 +680,35 @@ public class Repository {
 
     private static void handleMergeConflict(String fileName, Commit currentCommit, Commit givenCommit) {
         File file = join(CWD, fileName);
+        Blob currentBlob = readObject(join(BLOBS_DIR, currentCommit.getBlobs().get(fileName)), Blob.class);
+        Blob givenBlob = readObject(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName)), Blob.class);
+        stageArea = StageArea.getInstance();
         if (currentCommit.getBlobs().containsKey(fileName) && givenCommit.getBlobs().containsKey(fileName)) {
-            Blob currentBlob = new Blob(join(BLOBS_DIR, currentCommit.getBlobs().get(fileName)));
-            Blob givenBlob = new Blob(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName)));
             writeContents(file, "<<<<<<< HEAD\n");
             writeContents(file, currentBlob.getContentBytes());
             writeContents(file, "\n=======\n");
             writeContents(file, givenBlob.getContentBytes());
             writeContents(file, "\n>>>>>>>\n");
         } else if (currentCommit.getBlobs().containsKey(fileName)) {
-            Blob currentBlob = new Blob(join(BLOBS_DIR, currentCommit.getBlobs().get(fileName)));
-            byte[] content = "<<<<<<< HEAD\n".getBytes();
             writeContents(file, "<<<<<<< HEAD\n");
             writeContents(file, currentBlob.getContentBytes());
             writeContents(file, "\n=======\n");
             writeContents(file, "\n>>>>>>>\n");
         } else {
-            Blob givenBlob = new Blob(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName)));
-            byte[] content = "<<<<<<< HEAD\n".getBytes();
             writeContents(file, "<<<<<<< HEAD\n");
             writeContents(file, "\n=======\n");
             writeContents(file, givenBlob.getContentBytes());
             writeContents(file, "\n>>>>>>>\n");
         }
         stageArea.stageFile(fileName, file);
+        stageArea.save();
     }
 
     private static void checkoutAndStageFile(String fileName, Commit commit) {
         checkoutCommit(commit.getId(), fileName);
+        stageArea = StageArea.getInstance();
         stageArea.stageFile(fileName, join(CWD, fileName));
+        stageArea.save();
     }
 
 }
