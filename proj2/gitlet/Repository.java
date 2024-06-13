@@ -235,7 +235,7 @@ public class Repository {
         currentCommit = getCurrentCommit();
         while (currentCommit != null) {
             System.out.println("===");
-            System.out.println("commit " + currentCommit.getId());
+            System.out.println("Commit " + currentCommit.getId());
 
             // Check and print parents for merge commits
             if (currentCommit.getParent().size() > 1) {
@@ -305,7 +305,7 @@ public class Repository {
 
         for (Commit commit : commits) {
             System.out.println("===");
-            System.out.println("commit " + commit.getId());
+            System.out.println("Commit " + commit.getId());
             if (commit.getParent().size() > 1) {
                 System.out.println("Merge: " +
                         commit.getParent().get(0).substring(0, 7) + " " +
@@ -433,7 +433,6 @@ public class Repository {
             System.exit(0);
         }
 
-        currentBranch = getCurrentBranch();
         currentCommit = getCurrentCommit();
 
         String targetCommitId = readContentsAsString(join(refsHeads, branchName));
