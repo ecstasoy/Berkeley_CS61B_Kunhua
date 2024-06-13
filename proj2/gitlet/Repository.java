@@ -246,7 +246,7 @@ public class Repository {
             }
 
             System.out.println("Date: " + currentCommit.getFormattedTimestamp());
-            System.out.println(currentCommit.getMessage() + "\n");
+            System.out.println(currentCommit.getMessage());
 
             currentCommit = getNextCommit(currentCommit);
         }
