@@ -550,8 +550,9 @@ public class Repository {
                 Utils.restrictedDelete(fileName);
             }
         }
+
         for (String fileName : commit.getBlobs().keySet()) {
-            Blob blob = new Blob(join(BLOBS_DIR, commit.getBlobs().get(fileName)));
+            Blob blob = readObject(join(BLOBS_DIR, commit.getBlobs().get(fileName)), Blob.class);
             storeBlob(blob);
             File file = join(CWD, fileName);
             writeContents(file, blob.getContentBytes());
