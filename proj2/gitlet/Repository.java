@@ -650,7 +650,7 @@ public class Repository {
 
         // Creating a merge commit
         List<String> parents = Arrays.asList(currentCommit.getId(), givenCommit.getId());
-        String message = "Merged " + branchName + " into " + readContentsAsString(HEAD);
+        String message = "Merged " + branchName + " into " + readContentsAsString(HEAD) + ".";
         Commit mergeCommit = new Commit(message, parents, stageArea.getStagedFiles());
         saveCommit(mergeCommit);
         writeContents(join(refsHeads, readContentsAsString(HEAD)), mergeCommit.getId());
