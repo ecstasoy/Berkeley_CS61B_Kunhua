@@ -238,7 +238,8 @@ public class Repository {
             System.out.println("commit " + currentCommit.getId());
 
             // Check and print parents for merge commits
-            if (currentCommit.getParent().size() > 1) {
+            List<String> parents = currentCommit.getParent();
+            if (parents.size() > 1) {
                 System.out.println("Merge: " +
                         currentCommit.getParent().get(0).substring(0, 7) + " " +
                         currentCommit.getParent().get(1).substring(0, 7));
@@ -246,15 +247,20 @@ public class Repository {
 
             System.out.println("Date: " + currentCommit.getFormattedTimestamp());
             System.out.println(currentCommit.getMessage() + "\n");
-            if (currentCommit.getParent().size() == 1) {
-                currentCommit = getCommit(currentCommit.getParent().get(0));
-            } else {
-                currentCommit = null;
-            }
+
+            currentCommit = getNextCommit(currentCommit);
         }
     }
 
-    public static Commit getCommit(String id) {
+    private static Commit getNextCommit(Commit current) {
+        List<String> parents = current.getParent();
+        if (parents != null && !parents.isEmpty()) {
+            return getCommit(parents.get(0));  // Always follow the first parent in a log (like git does)
+        }
+        return null;  // No more parents to follow
+    }
+
+    private static Commit getCommit(String id) {
         File commitDir = join(COMMITS_DIR, id.substring(0, 2));
         if (id.length() < 6) {
             System.out.println("Commit id is too short.");
