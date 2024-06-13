@@ -612,6 +612,9 @@ public class Repository {
         Commit splitPoint = findSplitPoint(branchName);
         Boolean conflict = false;
 
+        Set<String> untrackedFiles = getUntrackedFiles(currentCommit);
+        checkForUntrackedFiles(untrackedFiles, givenCommit);
+
         if (splitPoint == null) {
             System.out.println("Given branch is an ancestor of the current branch.");
             System.exit(0);
@@ -730,6 +733,22 @@ public class Repository {
         stageArea = StageArea.getInstance();
         stageArea.stageFile(fileName, join(CWD, fileName));
         stageArea.save();
+    }
+
+    private static Set<String> getUntrackedFiles(Commit currentCommit) {
+        Set<String> trackedFiles = new HashSet<>(currentCommit.getBlobs().keySet());
+        Set<String> allFiles = new HashSet<>(plainFilenamesIn(CWD));
+        allFiles.removeAll(trackedFiles);
+        return allFiles;
+    }
+
+    private static void checkForUntrackedFiles(Set<String> untrackedFiles, Commit givenCommit) {
+        for (String file : givenCommit.getBlobs().keySet()) {
+            if (untrackedFiles.contains(file)) {
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first: " + file);
+                System.exit(0);
+            }
+        }
     }
 
 }
