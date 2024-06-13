@@ -709,8 +709,8 @@ public class Repository {
             givenBlob = readObject(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName)), Blob.class);
         }
 
-        String currentContents = (currentBlob != null) ? new String(currentBlob.getContentBytes()) + "\n" : "";
-        String givenContents = (givenBlob != null) ? new String(givenBlob.getContentBytes()) + "\n" : "";
+        String currentContents = (currentBlob != null) ? new String(currentBlob.getContentBytes()) : "";
+        String givenContents = (givenBlob != null) ? new String(givenBlob.getContentBytes()) : "";
 
         String conflictContent = "<<<<<<< HEAD\n" +
                 currentContents +
