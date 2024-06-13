@@ -71,7 +71,6 @@ public class Repository {
     public static void initCommit() {
         // Use an empty list to signify no parents for the initial commit
         List<String> noParents = new ArrayList<>();
-        noParents.add(null);
         Map<String, Blob> noBlobs = new HashMap<>(); // No files are tracked in the initial commit
 
         // Creating the initial commit with no parents and no blobs
@@ -670,11 +669,11 @@ public class Repository {
         List<String> ancestors = new ArrayList<>();
         while (commit != null) {
             ancestors.add(commit.getId());
-            String parent = commit.getParent().get(0);
-            if (parent == null) {
+            List<String> parent = commit.getParent();
+            if (parent.isEmpty()) {
                 break;
             } else {
-                commit = getCommit(parent);
+                commit = getCommit(parent.get(0));
             }
         }
         return ancestors;
