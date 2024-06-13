@@ -286,9 +286,7 @@ public class Repository {
 
         List<Commit> commits = new ArrayList<>();
 
-        File[] commitFolders = COMMITS_DIR.listFiles();
-
-        for (File commitFolder : commitFolders) {
+        for (File commitFolder : Objects.requireNonNull(COMMITS_DIR.listFiles())) {
             if (commitFolder == null) return;
             File[] commitFiles = commitFolder.listFiles();
             if (commitFiles == null) continue;
@@ -328,13 +326,18 @@ public class Repository {
             System.exit(0);
         }
         boolean found = false;
-        for (String commitFile : plainFilenamesIn(COMMITS_DIR)) {
-            Commit commit = getCommit(commitFile);
-            if (commit.getMessage().equals(commitMessage)) {
-                System.out.println(commit.getId());
-                found = true;
+
+        for (File commitFolder : Objects.requireNonNull(COMMITS_DIR.listFiles())) {
+            if (commitFolder == null) return;
+            for (File commitFile : Objects.requireNonNull(commitFolder.listFiles())) {
+                Commit commit = readObject(commitFile, Commit.class);
+                if (commit.getMessage().equals(commitMessage)) {
+                    System.out.println(commit.getId() + "\n");
+                    found = true;
+                }
             }
         }
+
         if (!found) {
             System.out.println("Found no commit with that message.");
             System.exit(0);
@@ -470,9 +473,8 @@ public class Repository {
             System.exit(0);
         }
         currentBranch = getCurrentBranch();
-        String currentCommitId = readContentsAsString(join(refsHeads, currentBranch));
-        writeContents(join(refsHeads, branchName), currentCommitId);
-        writeContents(HEAD, branchName);
+        currentCommit = getCurrentCommit();
+        writeContents(join(refsHeads, branchName), currentCommit.getId());
     }
 
     /**
