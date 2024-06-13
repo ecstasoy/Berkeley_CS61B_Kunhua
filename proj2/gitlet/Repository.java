@@ -446,7 +446,8 @@ public class Repository {
 
         for (String fileName : targetCommit.getBlobs().keySet()) {
             File file = join(CWD, fileName);
-            if (file.exists() && !currentCommit.getBlobs().containsKey(fileName)) {
+            if (file.exists() && !currentCommit.getBlobs().containsKey(fileName) && !isFileTracked(fileName)) {
+                System.out.println(fileName);
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
@@ -463,6 +464,36 @@ public class Repository {
             writeContents(file, blob.getContentBytes());
         }
         writeContents(HEAD, branchName);
+    }
+
+    // Function to check if a file has ever been tracked in any commit
+    private static boolean isFileTracked(String fileName) {
+        Set<String> allCommits = getAllCommitIds(); // Assume this function retrieves all commit IDs in the repo
+        for (String commitId : allCommits) {
+            Commit commit = getCommit(commitId);
+            if (commit != null && commit.getBlobs().containsKey(fileName)) {
+                return true; // File has been tracked in this commit
+            }
+        }
+        return false; // File was never tracked
+    }
+
+    // Function to get all commit IDs in the repository
+    private static Set<String> getAllCommitIds() {
+        Set<String> commitIds = new HashSet<>();
+        // Example: Traverse all commit objects stored in the commits directory
+        File[] commitFolders = COMMITS_DIR.listFiles();
+        if (commitFolders != null) {
+            for (File folder : commitFolders) {
+                File[] commits = folder.listFiles();
+                if (commits != null) {
+                    for (File commitFile : commits) {
+                        commitIds.add(folder.getName() + commitFile.getName());
+                    }
+                }
+            }
+        }
+        return commitIds;
     }
 
     /**
