@@ -745,7 +745,7 @@ public class Repository {
     private static void checkForUntrackedFiles(Set<String> untrackedFiles, Commit givenCommit) {
         for (String file : givenCommit.getBlobs().keySet()) {
             if (untrackedFiles.contains(file)) {
-                System.out.println("There is an untracked file in the way; delete it, or add and commit it first: " + file);
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
         }
