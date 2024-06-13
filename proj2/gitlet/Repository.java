@@ -620,6 +620,10 @@ public class Repository {
         Map<String, String> givenFiles = givenCommit.getBlobs();
         Map<String, String> splitFiles = splitPoint.getBlobs();
 
+        System.out.println(currentFiles);
+        System.out.println(givenFiles);
+        System.out.println(splitFiles);
+
         // Determine actions for each file in the three commits
         Set<String> allFiles = new HashSet<>(currentFiles.keySet());
         allFiles.addAll(givenFiles.keySet());
@@ -640,10 +644,11 @@ public class Repository {
             } else if (inGiven && (!inCurrent || !givenVersion.equals(splitVersion))) {
                 checkoutAndStageFile(file, givenCommit);
             } else if (!inGiven && inSplit && inCurrent && currentVersion.equals(splitVersion)) {
-                // File deleted in the given branch but unchanged from split to current
                 Utils.restrictedDelete(join(CWD, file));
                 stageArea.unstageFile(file);
                 stageArea.save();
+            } else if (!inGiven && inSplit && !inCurrent) {
+                Utils.restrictedDelete(join(CWD, file));
             }
         }
 
