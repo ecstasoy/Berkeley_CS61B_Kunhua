@@ -453,7 +453,7 @@ public class Repository {
             }
         }
         for (String fileName : targetCommit.getBlobs().keySet()) {
-            Blob blob = new Blob(join(BLOBS_DIR, targetCommit.getBlobs().get(fileName)));
+            Blob blob = readObject(join(BLOBS_DIR, targetCommit.getBlobs().get(fileName)), Blob.class);
             File file = join(CWD, fileName);
             writeContents(file, blob.getContentBytes());
         }
