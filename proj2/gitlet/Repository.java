@@ -695,27 +695,26 @@ public class Repository {
 
     private static void handleMergeConflict(String fileName, Commit currentCommit, Commit givenCommit) {
         File file = join(CWD, fileName);
-        Blob currentBlob = readObject(join(BLOBS_DIR, currentCommit.getBlobs().get(fileName)), Blob.class);
-        Blob givenBlob = readObject(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName)), Blob.class);
-        stageArea = StageArea.getInstance();
-        if (currentCommit.getBlobs().containsKey(fileName) && givenCommit.getBlobs().containsKey(fileName)) {
-            String contents = "<<<<<<< HEAD\n" +
-                    new String(currentBlob.getContentBytes()) + "\n" +
-                    "=======\n" + new String(givenBlob.getContentBytes()) +
-                    "\n>>>>>>>";
-            writeContents(file, contents);
-        } else if (currentCommit.getBlobs().containsKey(fileName)) {
-            String contents = "<<<<<<< HEAD\n" +
-                    new String(currentBlob.getContentBytes()) + "\n" +
-                    "=======" +
-                    "\n>>>>>>>";
-            writeContents(file, contents);
-        } else {
-            String contents = "<<<<<<< HEAD\n" +
-                    "=======\n" + new String(givenBlob.getContentBytes()) +
-                    "\n>>>>>>>";
-            writeContents(file, contents);
+        Blob currentBlob = null;
+        Blob givenBlob = null;
+
+        if (currentCommit.getBlobs().containsKey(fileName)) {
+            currentBlob = readObject(join(BLOBS_DIR, currentCommit.getBlobs().get(fileName)), Blob.class);
         }
+        if (givenCommit.getBlobs().containsKey(fileName)) {
+            givenBlob = readObject(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName)), Blob.class);
+        }
+
+        String currentContents = (currentBlob != null) ? new String(currentBlob.getContentBytes()) + "\n" : "";
+        String givenContents = (givenBlob != null) ? new String(givenBlob.getContentBytes()) + "\n" : "";
+
+        String conflictContent = "<<<<<<< HEAD\n" +
+                currentContents +
+                "=======\n" +
+                givenContents +
+                ">>>>>>>";
+
+        writeContents(file, conflictContent);
         stageArea.stageFile(fileName, file);
         stageArea.save();
     }
