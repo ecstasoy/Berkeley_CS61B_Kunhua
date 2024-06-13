@@ -557,6 +557,8 @@ public class Repository {
             File file = join(CWD, fileName);
             writeContents(file, blob.getContentBytes());
         }
+
+        stageArea.clear();
         writeContents(join(refsHeads, readContentsAsString(HEAD)), commitId);
         currentCommit = commit;
     }
