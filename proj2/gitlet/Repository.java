@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 
 import static gitlet.Utils.*;
@@ -285,20 +286,24 @@ public class Repository {
 
         List<Commit> commits = new ArrayList<>();
 
-        for (String commitFolder : plainFilenamesIn(COMMITS_DIR)) {
-            File commitDir = join(COMMITS_DIR, commitFolder);
-            for (String commitId : plainFilenamesIn(commitDir)) {
-                Commit commit = readObject(join(commitDir, commitId), Commit.class);
-                commits.add(commit);
+        File[] commitFolders = COMMITS_DIR.listFiles();
+
+        for (File commitFolder : commitFolders) {
+            if (commitFolder == null) return;
+            File[] commitFiles = commitFolder.listFiles();
+            if (commitFiles == null) continue;
+            for (File commitFile : commitFiles) {
+                try {
+                    Commit commit = readObject(commitFile, Commit.class);
+                    commits.add(commit);
+                } catch (IllegalArgumentException e) {
+                    System.out.println("Error reading commit file.");
+                    System.exit(0);
+                }
             }
         }
 
-        Collections.sort(commits, new Comparator<Commit>() {
-            @Override
-            public int compare(Commit c1, Commit c2) {
-                return c1.getTimestamp().compareTo(c2.getTimestamp());
-            }
-        });
+        commits.sort((c1, c2) -> c2.getTimestamp().compareTo(c1.getTimestamp()));
 
         for (Commit commit : commits) {
             System.out.println("===");
