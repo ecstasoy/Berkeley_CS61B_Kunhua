@@ -620,10 +620,6 @@ public class Repository {
         Map<String, String> givenFiles = givenCommit.getBlobs();
         Map<String, String> splitFiles = splitPoint.getBlobs();
 
-        System.out.println(currentFiles);
-        System.out.println(givenFiles);
-        System.out.println(splitFiles);
-
         // Determine actions for each file in the three commits
         Set<String> allFiles = new HashSet<>(currentFiles.keySet());
         allFiles.addAll(givenFiles.keySet());
