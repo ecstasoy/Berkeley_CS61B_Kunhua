@@ -447,7 +447,6 @@ public class Repository {
         for (String fileName : targetCommit.getBlobs().keySet()) {
             File file = join(CWD, fileName);
             if (file.exists() && !currentCommit.getBlobs().containsKey(fileName) && !isFileTracked(fileName)) {
-                System.out.println(fileName);
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
@@ -549,6 +548,14 @@ public class Repository {
 
         Commit commit = getCommit(commitId);
         currentCommit = getCurrentCommit();
+
+        for (String fileName : commit.getBlobs().keySet()) {
+            File file = join(CWD, fileName);
+            if (file.exists() && !currentCommit.getBlobs().containsKey(fileName) && !isFileTracked(fileName)) {
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
 
         for (String fileName : currentCommit.getBlobs().keySet()) {
             if (!commit.getBlobs().containsKey(fileName)) {
