@@ -702,18 +702,18 @@ public class Repository {
             String contents = "<<<<<<< HEAD\n" +
                     new String(currentBlob.getContentBytes()) + "\n" +
                     "=======\n" + new String(givenBlob.getContentBytes()) +
-                    "\n>>>>>>>\n";
+                    "\n>>>>>>>";
             writeContents(file, contents);
         } else if (currentCommit.getBlobs().containsKey(fileName)) {
             String contents = "<<<<<<< HEAD\n" +
                     new String(currentBlob.getContentBytes()) + "\n" +
                     "=======" +
-                    "\n>>>>>>>\n";
+                    "\n>>>>>>>";
             writeContents(file, contents);
         } else {
             String contents = "<<<<<<< HEAD\n" +
                     "=======\n" + new String(givenBlob.getContentBytes()) +
-                    "\n>>>>>>>\n";
+                    "\n>>>>>>>";
             writeContents(file, contents);
         }
         stageArea.stageFile(fileName, file);
