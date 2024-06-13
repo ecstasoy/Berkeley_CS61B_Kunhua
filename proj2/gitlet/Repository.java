@@ -640,11 +640,16 @@ public class Repository {
                 conflict = true;
             } else if (inGiven && (!inCurrent || !givenVersion.equals(splitVersion))) {
                 checkoutAndStageFile(file, givenCommit);
-            } else if (!inGiven && inSplit && inCurrent && currentVersion.equals(splitVersion)) {
-                Utils.restrictedDelete(join(CWD, file));
-                stageArea.unstageFile(file);
-                stageArea.save();
-            } else if (!inGiven && inSplit && !inCurrent) {
+            } else if (!inGiven && inSplit && inCurrent ) {
+                if (currentVersion.equals(splitVersion)) {
+                    Utils.restrictedDelete(join(CWD, file));
+                    stageArea.unstageFile(file);
+                    stageArea.save();
+                } else {
+                    handleMergeConflict(file, currentCommit, givenCommit);
+                    conflict = true;
+                }
+            } else if (!inGiven && inSplit) {
                 Utils.restrictedDelete(join(CWD, file));
             }
         }
