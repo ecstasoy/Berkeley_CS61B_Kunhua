@@ -246,7 +246,7 @@ public class Repository {
             }
 
             System.out.println("Date: " + currentCommit.getFormattedTimestamp());
-            System.out.println(currentCommit.getMessage());
+            System.out.println(currentCommit.getMessage() + "\n");
 
             currentCommit = getNextCommit(currentCommit);
         }
@@ -338,7 +338,7 @@ public class Repository {
             for (File commitFile : Objects.requireNonNull(commitFolder.listFiles())) {
                 Commit commit = readObject(commitFile, Commit.class);
                 if (commit.getMessage().equals(commitMessage)) {
-                    System.out.println(commit.getId() + "\n");
+                    System.out.println(commit.getId());
                     found = true;
                 }
             }
