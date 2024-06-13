@@ -653,6 +653,7 @@ public class Repository {
         String message = "Merged " + branchName + " into " + readContentsAsString(HEAD) + ".";
         Commit mergeCommit = new Commit(message, parents, stageArea.getStagedFiles());
         saveCommit(mergeCommit);
+        stageArea.clear();
         writeContents(join(refsHeads, readContentsAsString(HEAD)), mergeCommit.getId());
 
         if (conflict) {
