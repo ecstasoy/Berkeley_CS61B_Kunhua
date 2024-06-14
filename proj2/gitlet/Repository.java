@@ -717,8 +717,8 @@ public class Repository {
             String givenVersion = inGiven ? givenFiles.get(file).getId() : null;
             String splitVersion = inSplit ? splitFiles.get(file).getId() : null;
 
-            if (inCurrent && inGiven && !givenVersion.equals(currentVersion) &&
-                    !givenVersion.equals(splitVersion)) {
+            if (inCurrent && inGiven && !givenVersion.equals(currentVersion)
+                    && !givenVersion.equals(splitVersion)) {
                 if (currentVersion.equals(splitVersion)) {
                     checkoutAndStageFile(file, givenCommit);
                 } else {
@@ -812,8 +812,12 @@ public class Repository {
                     givenCommit.getBlobs().get(fileName).getId()), Blob.class);
         }
 
-        String currentContents = (currentBlob != null) ? new String(currentBlob.getContentBytes()) : "";
-        String givenContents = (givenBlob != null) ? new String(givenBlob.getContentBytes()) : "";
+        String currentContents = (currentBlob != null)
+                ? new String(currentBlob.getContentBytes())
+                : "";
+        String givenContents = (givenBlob != null)
+                ? new String(givenBlob.getContentBytes())
+                : "";
 
         String conflictContent = "<<<<<<< HEAD\n"
                 + currentContents
