@@ -215,19 +215,19 @@ public class Repository {
                 System.exit(0);
             } else {
                 stageArea.markRemoved(fileName);
-                stageArea.save();
                 Utils.restrictedDelete(fileName);
             }
-        }
-        if (stageArea.isFileStaged(fileName)) {
+        } else {
             stageArea.unstageFile(fileName);
         }
+
         if (currentCommit.getBlobs().containsKey(fileName)) {
             stageArea.markRemoved(fileName);
             if (join(CWD, fileName).exists()) {
                 Utils.restrictedDelete(fileName);
             }
         }
+
         stageArea.save();
     }
 
@@ -470,11 +470,18 @@ public class Repository {
                 Utils.restrictedDelete(fileName);
             }
         }
-        for (String fileName : targetCommit.getBlobs().keySet()) {
-            Blob blob = readObject(join(BLOBS_DIR, targetCommit.getBlobs().get(fileName)), Blob.class);
-            File file = join(CWD, fileName);
-            writeContents(file, blob.getContentBytes());
+
+        List<String> ancestors = getAncestors(targetCommit);
+
+        for (String commitId : ancestors) {
+            Commit commit = getCommit(commitId);
+            for (String fileName : commit.getBlobs().keySet()) {
+                Blob blob = readObject(join(BLOBS_DIR, commit.getBlobs().get(fileName)), Blob.class);
+                File file = join(CWD, fileName);
+                writeContents(file, blob.getContentBytes());
+            }
         }
+
         writeContents(HEAD, branchName);
     }
 
@@ -633,8 +640,8 @@ public class Repository {
         }
 
         if (splitPoint == currentCommit) {
+            checkoutBranch(branchName);
             System.out.println("Current branch fast-forwarded.");
-            writeContents(join(refsHeads, readContentsAsString(HEAD)), givenCommit.getId());
             System.exit(0);
         }
 
