@@ -724,13 +724,12 @@ public class Repository {
 
         for (String ancestor : currentAncestors) {
             if (targetAncestors.contains(ancestor)) {
-                if (Objects.equals(ancestor, currentCommit.getId())) {
+                if (ancestor.equals(targetCommitId)) {
                     return null;
                 }
                 return getCommit(ancestor);
             }
         }
-
         return null;
     }
 
