@@ -216,7 +216,7 @@ public class Repository {
         if (stageArea.isFileStaged(fileName)) {
             stageArea.unstageFile(fileName);
         }
-        if (currentCommit.getBlobs().containsKey(fileName)) {
+        if (isFileTracked(fileName)) {
             stageArea.markRemoved(fileName);
             if (join(CWD, fileName).exists()) {
                 Utils.restrictedDelete(fileName);
