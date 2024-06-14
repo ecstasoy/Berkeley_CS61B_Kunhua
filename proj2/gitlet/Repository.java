@@ -482,12 +482,21 @@ public class Repository {
     private static boolean isFileTracked(String fileName) {
         Set<String> allCommits = getAllCommitIds(); // Assume this function retrieves all commit IDs in the repo
         File file = join(CWD, fileName);
-        String currentFileSha1 = sha1(readContents(file));
-        for (String commitId : allCommits) {
-            Commit commit = getCommit(commitId);
-            if (commit != null && commit.getBlobs().containsKey(fileName)) {
-                String fileSha1 = commit.getBlobs().get(fileName);
-                if (fileSha1.equals(currentFileSha1)) {
+        if (file.exists()) {
+            String currentFileSha1 = sha1(readContents(file));
+            for (String commitId : allCommits) {
+                Commit commit = getCommit(commitId);
+                if (commit != null && commit.getBlobs().containsKey(fileName)) {
+                    String fileSha1 = commit.getBlobs().get(fileName);
+                    if (fileSha1.equals(currentFileSha1)) {
+                        return true; // File was tracked in this commit
+                    }
+                }
+            }
+        } else {
+            for (String commitId : allCommits) {
+                Commit commit = getCommit(commitId);
+                if (commit != null && commit.getBlobs().containsKey(fileName)) {
                     return true; // File was tracked in this commit
                 }
             }
