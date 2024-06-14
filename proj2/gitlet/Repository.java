@@ -7,7 +7,7 @@ import java.util.*;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
+ *  MARK: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  *  @author Kunhua Huang
@@ -44,8 +44,8 @@ public class Repository {
      */
     public static void init() throws IOException {
         if (isInitialized()) {
-            System.out.println("A Gitlet version-control system" +
-                    " already exists in the current directory.");
+            System.out.println("A Gitlet version-control system"
+                    + " already exists in the current directory.");
             System.exit(0);
         }
         GITLET_DIR.mkdir();
@@ -327,7 +327,7 @@ public class Repository {
         List<Commit> commits = new ArrayList<>();
 
         for (File commitFolder : Objects.requireNonNull(COMMITS_DIR.listFiles())) {
-            if (commitFolder == null){
+            if (commitFolder == null) {
                 return;
             }
             File[] commitFiles = commitFolder.listFiles();
@@ -419,9 +419,9 @@ public class Repository {
         }
 
         System.out.println("\n=== Modifications Not Staged For Commit ===");
-        // TODO: print modifications not staged for commit
+        //MARK: print modifications not staged for commit
         System.out.println("\n=== Untracked Files ===");
-        // TODO: print untracked files
+        //MARK: print untracked files
     }
 
     /**
@@ -624,8 +624,8 @@ public class Repository {
             File file = join(CWD, fileName);
             if (file.exists() && !currentCommit.getBlobs().containsKey(fileName)
                     && !isFileTracked(fileName)) {
-                System.out.println("There is an untracked file in the way;" +
-                        " delete it, or add and commit it first.");
+                System.out.println("There is an untracked file in the way;"
+                        + " delete it, or add and commit it first.");
                 System.exit(0);
             }
         }
@@ -637,7 +637,8 @@ public class Repository {
         }
 
         for (String fileName : commit.getBlobs().keySet()) {
-            Blob blob = readObject(join(BLOBS_DIR, commit.getBlobs().get(fileName).getId()), Blob.class);
+            Blob blob = readObject(join(BLOBS_DIR,
+                    commit.getBlobs().get(fileName).getId()), Blob.class);
             storeBlob(blob);
             File file = join(CWD, fileName);
             writeContents(file, blob.getContentBytes());
@@ -716,22 +717,23 @@ public class Repository {
             String givenVersion = inGiven ? givenFiles.get(file).getId() : null;
             String splitVersion = inSplit ? splitFiles.get(file).getId() : null;
 
-            if (inCurrent && inGiven && !givenVersion.equals(currentVersion) && !givenVersion.equals(splitVersion)) {
+            if (inCurrent && inGiven && !givenVersion.equals(currentVersion) &&
+                    !givenVersion.equals(splitVersion)) {
                 if (currentVersion.equals(splitVersion)) {
                     checkoutAndStageFile(file, givenCommit);
                 } else {
-                    handleMergeConflict(file, currentCommit, givenCommit);
+                    handleMergeConflict(file, givenCommit);
                     conflict = true;
                 }
             } else if (inGiven && !inCurrent && !inSplit) {
                 checkoutAndStageFile(file, givenCommit);
-            } else if (!inGiven && inSplit && inCurrent ) {
+            } else if (!inGiven && inSplit && inCurrent) {
                 if (currentVersion.equals(splitVersion)) {
                     Utils.restrictedDelete(join(CWD, file));
                     stageArea.unstageFile(file);
                     stageArea.save();
                 } else {
-                    handleMergeConflict(file, currentCommit, givenCommit);
+                    handleMergeConflict(file, givenCommit);
                     conflict = true;
                 }
             } else if (!inGiven && inSplit) {
@@ -748,7 +750,8 @@ public class Repository {
         }
     }
 
-    private static void createMergeCommit(String message, List<String> parents, Map<String, Blob> blobs) {
+    private static void createMergeCommit(String message,
+                                          List<String> parents, Map<String, Blob> blobs) {
         Commit mergeCommit = new Commit(message, parents, blobs);
         saveCommit(mergeCommit);
         stageArea.clear();
@@ -795,26 +798,28 @@ public class Repository {
         return ancestors;
     }
 
-    private static void handleMergeConflict(String fileName, Commit currentCommit, Commit givenCommit) {
+    private static void handleMergeConflict(String fileName, Commit givenCommit) {
         File file = join(CWD, fileName);
         Blob currentBlob = null;
         Blob givenBlob = null;
 
         if (currentCommit.getBlobs().containsKey(fileName)) {
-            currentBlob = readObject(join(BLOBS_DIR, currentCommit.getBlobs().get(fileName).getId()), Blob.class);
+            currentBlob = readObject(join(BLOBS_DIR,
+                    currentCommit.getBlobs().get(fileName).getId()), Blob.class);
         }
         if (givenCommit.getBlobs().containsKey(fileName)) {
-            givenBlob = readObject(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName).getId()), Blob.class);
+            givenBlob = readObject(join(BLOBS_DIR,
+                    givenCommit.getBlobs().get(fileName).getId()), Blob.class);
         }
 
-        String currentContents = (currentBlob != null) ? new String(currentBlob.getContentBytes()): "";
-        String givenContents = (givenBlob != null) ? new String(givenBlob.getContentBytes()): "";
+        String currentContents = (currentBlob != null) ? new String(currentBlob.getContentBytes()) : "";
+        String givenContents = (givenBlob != null) ? new String(givenBlob.getContentBytes()) : "";
 
-        String conflictContent = "<<<<<<< HEAD\n" +
-                currentContents +
-                "=======\n" +
-                givenContents +
-                ">>>>>>>\n";
+        String conflictContent = "<<<<<<< HEAD\n"
+                + currentContents
+                + "=======\n"
+                + givenContents
+                + ">>>>>>>\n";
 
         writeContents(file, conflictContent);
         stageArea.stageFile(fileName, file);
@@ -828,8 +833,8 @@ public class Repository {
         stageArea.save();
     }
 
-    private static Set<String> getUntrackedFiles(Commit currentCommit) {
-        Set<String> trackedFiles = new HashSet<>(currentCommit.getBlobs().keySet());
+    private static Set<String> getUntrackedFiles(Commit currCommit) {
+        Set<String> trackedFiles = new HashSet<>(currCommit.getBlobs().keySet());
         Set<String> allFiles = new HashSet<>(Objects.requireNonNull(plainFilenamesIn(CWD)));
         allFiles.removeAll(trackedFiles);
         return allFiles;
@@ -838,7 +843,8 @@ public class Repository {
     private static void checkForUntrackedFiles(Set<String> untrackedFiles, Commit givenCommit) {
         for (String file : givenCommit.getBlobs().keySet()) {
             if (untrackedFiles.contains(file) && !isFileTracked(file)) {
-                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.out.println("There is an untracked file in the way;"
+                        + " delete it, or add and commit it first.");
                 System.exit(0);
             }
         }

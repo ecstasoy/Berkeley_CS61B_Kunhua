@@ -7,7 +7,7 @@ import java.util.*;
 import static gitlet.Utils.*;
 
 public class StageArea implements Serializable, Dumpable {
-    private final static File stage = Repository.STAGE;
+    private static final File STAGE = Repository.STAGE;
     private static StageArea instance;
     private final Map<String, Blob> stagedFiles;
     private final Set<String> removedFiles;
@@ -19,8 +19,8 @@ public class StageArea implements Serializable, Dumpable {
 
     public static StageArea getInstance() {
         if (instance == null) {
-            if (stage.exists()) {
-                instance = readObject(stage, StageArea.class);
+            if (STAGE.exists()) {
+                instance = readObject(STAGE, StageArea.class);
             } else {
                 instance = new StageArea();
             }
@@ -35,12 +35,12 @@ public class StageArea implements Serializable, Dumpable {
     public void stageFile(String fileName, File file) {
         Blob blob = new Blob(file);
         stagedFiles.put(fileName, blob);
-        writeObject(stage, this);
+        writeObject(STAGE, this);
     }
 
     public void unstageFile(String fileName) {
         stagedFiles.remove(fileName);
-        writeObject(stage, this);
+        writeObject(STAGE, this);
     }
 
     public void markRemoved(String fileName) {
@@ -70,7 +70,7 @@ public class StageArea implements Serializable, Dumpable {
     public void clear() {
         stagedFiles.clear();
         removedFiles.clear();
-        writeObject(stage, this);
+        writeObject(STAGE, this);
     }
 
     @Override
