@@ -722,6 +722,8 @@ public class Repository {
         allFiles.addAll(givenFiles.keySet());
         allFiles.addAll(splitFiles.keySet());
 
+        Map<String, Blob> newBlobs = new HashMap<>(currentCommit.getBlobs());
+
         for (String file : allFiles) {
             boolean inCurrent = currentFiles.containsKey(file);
             boolean inGiven = givenFiles.containsKey(file);
@@ -735,15 +737,18 @@ public class Repository {
                     && !givenVersion.equals(splitVersion)) {
                 if (currentVersion.equals(splitVersion)) {
                     checkoutAndStageFile(file, givenCommit);
+                    newBlobs.put(file, givenFiles.get(file));
                 } else {
                     handleMergeConflict(file, givenCommit);
                     conflict = true;
                 }
             } else if (inGiven && !inCurrent && !inSplit) {
                 checkoutAndStageFile(file, givenCommit);
+                newBlobs.put(file, givenFiles.get(file));
             } else if (!inGiven && inSplit && inCurrent) {
                 if (currentVersion.equals(splitVersion)) {
                     Utils.restrictedDelete(join(CWD, file));
+                    newBlobs.remove(file);
                     stageArea.unstageFile(file);
                     stageArea.save();
                 } else {
@@ -752,12 +757,13 @@ public class Repository {
                 }
             } else if (!inGiven && inSplit) {
                 Utils.restrictedDelete(join(CWD, file));
+                newBlobs.remove(file);
             }
         }
 
         List<String> parents = Arrays.asList(currentCommit.getId(), givenCommit.getId());
         String message = "Merged " + branchName + " into " + readContentsAsString(HEAD) + ".";
-        createMergeCommit(message, parents, currentCommit.getBlobs());
+        createMergeCommit(message, parents, newBlobs);
 
         if (conflict) {
             System.out.println("Encountered a merge conflict.");
