@@ -209,7 +209,7 @@ public class Repository {
         currentCommit = getCurrentCommit();
         stageArea = StageArea.getInstance();
 
-        if (!stageArea.isFileStaged(fileName) && !currentCommit.getBlobs().containsKey(fileName)) {
+        if (!stageArea.isFileStaged(fileName) && !isFileTracked(fileName)) {
             System.out.println("No reason to remove the file.");
             System.exit(0);
         }
