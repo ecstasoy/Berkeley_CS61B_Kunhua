@@ -639,7 +639,9 @@ public class Repository {
             System.exit(0);
         }
 
-        if (splitPoint == currentCommit) {
+        List<String> ancestors = getAncestors(givenCommit);
+
+        if (ancestors.contains(currentCommit.getId())) {
             checkoutBranch(branchName);
             System.out.println("Current branch fast-forwarded.");
             System.exit(0);
