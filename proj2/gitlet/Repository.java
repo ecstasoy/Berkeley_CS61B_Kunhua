@@ -422,7 +422,11 @@ public class Repository {
         System.out.println("\n=== Untracked Files ===");
         Set<String> untrackedFiles = getUntrackedFiles(currentCommit);
         for (String file : untrackedFiles) {
-            System.out.println(file);
+            if (stageArea.getStagedFiles().containsKey(file)) {
+                continue;
+            } else {
+                System.out.println(file);
+            }
         }
     }
 
