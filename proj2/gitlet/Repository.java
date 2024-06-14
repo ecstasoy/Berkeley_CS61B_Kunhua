@@ -464,23 +464,23 @@ public class Repository {
         }
 
 
-        List<String> currentAncestors = getAncestors(currentCommit);
-        for (String commitId : currentAncestors) {
-            Commit commit = getCommit(commitId);
-            for (String fileName : commit.getBlobs().keySet()) {
-                if (!targetCommit.getBlobs().containsKey(fileName)) {
-                    Utils.restrictedDelete(fileName);
-                }
-            }
+// Assuming `targetCommit` is the latest commit on the target branch you want to merge.
+        Map<String, String> finalBlobs = targetCommit.getBlobs();  // This should hold the latest blob IDs for each file.
+
+        for (Map.Entry<String, String> entry : finalBlobs.entrySet()) {
+            String fileName = entry.getKey();
+            String blobId = entry.getValue();
+
+            Blob blob = readObject(join(BLOBS_DIR, blobId), Blob.class);
+            File file = join(CWD, fileName);
+            writeContents(file, blob.getContentBytes());  // Only write the final state of each file
         }
 
-        List<String> targetAncestors = getAncestors(targetCommit);
-        for (String commitId : targetAncestors) {
-            Commit commit = getCommit(commitId);
-            for (String fileName : commit.getBlobs().keySet()) {
-                Blob blob = readObject(join(BLOBS_DIR, commit.getBlobs().get(fileName)), Blob.class);
-                File file = join(CWD, fileName);
-                writeContents(file, blob.getContentBytes());
+// Delete files that are present in the current working directory but not in the target commit
+        Set<String> currentFiles = new HashSet<>(plainFilenamesIn(CWD));  // Assuming this method gives us current files
+        for (String currentFile : currentFiles) {
+            if (!finalBlobs.containsKey(currentFile)) {
+                Utils.restrictedDelete(currentFile);
             }
         }
 
