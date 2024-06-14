@@ -16,16 +16,16 @@ public class Commit implements Serializable, Dumpable {
      * variable is used. We've provided one example for `message`.
      */
 
-    private String id;
+    private final String id;
     /** The message of this Commit. */
-    private String message;
-    private Date timestamp;
+    private final String message;
+    private final Date timestamp;
     private List<String> parents;
-    private Map<String, Blob> tracked;
+    private final Map<String, Blob> tracked;
 
     // Constructor for normal commit
     public Commit(String message, String parent, Map<String, Blob> blobs) {
-        this(message, Arrays.asList(parent), blobs);
+        this(message, Collections.singletonList(parent), blobs);
     }
 
     // Constructor for merge commit
@@ -57,15 +57,16 @@ public class Commit implements Serializable, Dumpable {
 
     public String getFormattedTimestamp() {
         // Setting the locale to US to ensure English names for days and months
-        return String.format(Locale.US, "%ta %tb %td %tT %tY %tz", timestamp, timestamp, timestamp, timestamp, timestamp, timestamp);
+        return String.format(Locale.US, "%ta %tb %td %tT %tY %tz",
+                timestamp, timestamp, timestamp, timestamp, timestamp, timestamp);
     }
 
     public List<String> getParent() {
         return parents;
     }
 
-    public void setParent(List<String> parents) {
-        this.parents = parents;
+    public void setParent(List<String> newParents) {
+        this.parents = newParents;
     }
 
     public Map<String, Blob> getBlobs() {
