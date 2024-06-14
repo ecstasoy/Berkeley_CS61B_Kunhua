@@ -2,8 +2,6 @@ package gitlet;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 import static gitlet.Utils.*;
@@ -465,15 +463,19 @@ public class Repository {
             }
         }
 
-        for (String fileName : currentCommit.getBlobs().keySet()) {
-            if (!targetCommit.getBlobs().containsKey(fileName)) {
-                Utils.restrictedDelete(fileName);
+
+        List<String> currentAncestors = getAncestors(currentCommit);
+        for (String commitId : currentAncestors) {
+            Commit commit = getCommit(commitId);
+            for (String fileName : commit.getBlobs().keySet()) {
+                if (!targetCommit.getBlobs().containsKey(fileName)) {
+                    Utils.restrictedDelete(fileName);
+                }
             }
         }
 
-        List<String> ancestors = getAncestors(targetCommit);
-
-        for (String commitId : ancestors) {
+        List<String> targetAncestors = getAncestors(targetCommit);
+        for (String commitId : targetAncestors) {
             Commit commit = getCommit(commitId);
             for (String fileName : commit.getBlobs().keySet()) {
                 Blob blob = readObject(join(BLOBS_DIR, commit.getBlobs().get(fileName)), Blob.class);
