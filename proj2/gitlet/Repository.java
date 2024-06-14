@@ -627,13 +627,19 @@ public class Repository {
         Commit splitPoint = findSplitPoint(branchName);
         Boolean conflict = false;
 
-        Set<String> untrackedFiles = getUntrackedFiles(currentCommit);
-        checkForUntrackedFiles(untrackedFiles, givenCommit);
-
         if (splitPoint == null) {
             System.out.println("Given branch is an ancestor of the current branch.");
             System.exit(0);
         }
+
+        if (splitPoint == currentCommit) {
+            System.out.println("Current branch fast-forwarded.");
+            writeContents(join(refsHeads, readContentsAsString(HEAD)), givenCommit.getId());
+            System.exit(0);
+        }
+
+        Set<String> untrackedFiles = getUntrackedFiles(currentCommit);
+        checkForUntrackedFiles(untrackedFiles, givenCommit);
 
         Map<String, String> currentFiles = currentCommit.getBlobs();
         Map<String, String> givenFiles = givenCommit.getBlobs();
