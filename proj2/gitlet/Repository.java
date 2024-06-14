@@ -719,7 +719,7 @@ public class Repository {
             if (inCurrent && inGiven && !givenVersion.equals(currentVersion) && !givenVersion.equals(splitVersion) && !currentVersion.equals(splitVersion)) {
                 handleMergeConflict(file, currentCommit, givenCommit);
                 conflict = true;
-            } else if (inGiven && !inCurrent && !inSplit) {
+            } else if (inGiven && (!inCurrent || !givenVersion.equals(splitVersion))) {
                 checkoutAndStageFile(file, givenCommit);
             } else if (!inGiven && inSplit && inCurrent ) {
                 if (currentVersion.equals(splitVersion)) {
