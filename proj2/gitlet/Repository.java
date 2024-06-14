@@ -209,14 +209,20 @@ public class Repository {
         currentCommit = getCurrentCommit();
         stageArea = StageArea.getInstance();
 
-        if (!stageArea.isFileStaged(fileName) && !isFileTracked(fileName)) {
-            System.out.println("No reason to remove the file.");
-            System.exit(0);
+        if (!stageArea.isFileStaged(fileName)) {
+            if (!isFileTracked(fileName)) {
+                System.out.println("No reason to remove the file.");
+                System.exit(0);
+            } else {
+                stageArea.markRemoved(fileName);
+                stageArea.save();
+                Utils.restrictedDelete(fileName);
+            }
         }
         if (stageArea.isFileStaged(fileName)) {
             stageArea.unstageFile(fileName);
         }
-        if (isFileTracked(fileName)) {
+        if (currentCommit.getBlobs().containsKey(fileName)) {
             stageArea.markRemoved(fileName);
             if (join(CWD, fileName).exists()) {
                 Utils.restrictedDelete(fileName);
