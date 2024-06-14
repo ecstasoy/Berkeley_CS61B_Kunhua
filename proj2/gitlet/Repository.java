@@ -106,7 +106,10 @@ public class Repository {
         Blob blob = new Blob(file);
         currentCommit = getCurrentCommit();
         stageArea = StageArea.getInstance();
-        String lastCommittedId = currentCommit.getBlobs().get(fileName);
+        String lastCommittedId = null;
+        if (currentCommit.getBlobs().containsKey(fileName)) {
+            lastCommittedId = currentCommit.getBlobs().get(fileName).getId();
+        }
 
         if (lastCommittedId != null && lastCommittedId.equals(blob.getId()) && !stageArea.isRemoved(fileName)) {
             return;
@@ -169,15 +172,37 @@ public class Repository {
             return;
         }
 
-        String parentCommitId = currentCommit.getId();
-        Map<String, Blob> stagedBlobs = new HashMap<>(stageArea.getStagedFiles());
-        for (Blob blob : stagedBlobs.values()) {
-            storeBlob(blob);
+        // Merge current commit's blobs with staged blobs to form the new commit's blobs
+        Map<String, Blob> newCommitBlobs = new HashMap<>(currentCommit.getBlobs());
+        for (Map.Entry<String, Blob> entry : stageArea.getStagedFiles().entrySet()) {
+            Blob blob = entry.getValue();
+            String blobId = blob.getId();
+
+            // Only store the blob if it does not already exist to avoid redundancy
+            File blobFile = join(BLOBS_DIR, blobId);
+            if (!blobFile.exists()) {
+                storeBlob(blob);
+            }
+            newCommitBlobs.put(entry.getKey(), blob);
         }
-        currentCommit = createCommit(message, parentCommitId, stagedBlobs);
+
+        // Remove blobs marked for removal in the staging area
+        for (String removedFileName : stageArea.getRemovedFiles()) {
+            newCommitBlobs.remove(removedFileName);
+        }
+
+        if (newCommitBlobs.equals(currentCommit.getBlobs())) {
+            System.out.println("No changes detected.");
+            return;
+        }
+
+        String parentCommitId = currentCommit.getId();
+        Commit newCommit = createCommit(message, parentCommitId, newCommitBlobs);
         stageArea.clear();
+
+        // Update HEAD and current branch to point to the new commit
+        writeContents(join(refsHeads, getCurrentBranch()), newCommit.getId());
         writeContents(HEAD, getCurrentBranch());
-        writeContents(join(refsHeads, getCurrentBranch()), currentCommit.getId());
     }
 
     public static Commit createCommit(String commitMessage, String parentCommitId, Map<String, Blob> blobs) {
@@ -401,7 +426,7 @@ public class Repository {
         }
 
         currentCommit = getCurrentCommit();
-        File blobFile = join(BLOBS_DIR, currentCommit.getBlobs().get(fileName));
+        File blobFile = join(BLOBS_DIR, currentCommit.getBlobs().get(fileName).getId());
 
         if (!currentCommit.getBlobs().containsKey(fileName)) {
             System.out.println("File does not exist in that commit.");
@@ -425,7 +450,7 @@ public class Repository {
             System.exit(0);
         }
 
-        File blobFile = join(BLOBS_DIR, commit.getBlobs().get(fileName));
+        File blobFile = join(BLOBS_DIR, commit.getBlobs().get(fileName).getId());
 
         if (!commit.getBlobs().containsKey(fileName)) {
             System.out.println("File does not exist in that commit.");
@@ -464,19 +489,19 @@ public class Repository {
         }
 
 
-// Assuming `targetCommit` is the latest commit on the target branch you want to merge.
-        Map<String, String> finalBlobs = targetCommit.getBlobs();  // This should hold the latest blob IDs for each file.
+        // Assuming `targetCommit` is the latest commit on the target branch you want to merge.
+        Map<String, Blob> finalBlobs = targetCommit.getBlobs();  // This should hold the latest blob IDs for each file.
 
-        for (Map.Entry<String, String> entry : finalBlobs.entrySet()) {
+        for (Map.Entry<String, Blob> entry : finalBlobs.entrySet()) {
             String fileName = entry.getKey();
-            String blobId = entry.getValue();
+            String blobId = entry.getValue().getId();
 
             Blob blob = readObject(join(BLOBS_DIR, blobId), Blob.class);
             File file = join(CWD, fileName);
             writeContents(file, blob.getContentBytes());  // Only write the final state of each file
         }
 
-// Delete files that are present in the current working directory but not in the target commit
+        // Delete files that are present in the current working directory but not in the target commit
         Set<String> currentFiles = new HashSet<>(plainFilenamesIn(CWD));  // Assuming this method gives us current files
         for (String currentFile : currentFiles) {
             if (!finalBlobs.containsKey(currentFile)) {
@@ -496,7 +521,7 @@ public class Repository {
             for (String commitId : allCommits) {
                 Commit commit = getCommit(commitId);
                 if (commit != null && commit.getBlobs().containsKey(fileName)) {
-                    String fileSha1 = commit.getBlobs().get(fileName);
+                    String fileSha1 = commit.getBlobs().get(fileName).getId();
                     if (fileSha1.equals(currentFileSha1)) {
                         return true; // File was tracked in this commit
                     }
@@ -595,7 +620,7 @@ public class Repository {
         }
 
         for (String fileName : commit.getBlobs().keySet()) {
-            Blob blob = readObject(join(BLOBS_DIR, commit.getBlobs().get(fileName)), Blob.class);
+            Blob blob = readObject(join(BLOBS_DIR, commit.getBlobs().get(fileName).getId()), Blob.class);
             storeBlob(blob);
             File file = join(CWD, fileName);
             writeContents(file, blob.getContentBytes());
@@ -652,9 +677,9 @@ public class Repository {
         Set<String> untrackedFiles = getUntrackedFiles(currentCommit);
         checkForUntrackedFiles(untrackedFiles, givenCommit);
 
-        Map<String, String> currentFiles = currentCommit.getBlobs();
-        Map<String, String> givenFiles = givenCommit.getBlobs();
-        Map<String, String> splitFiles = splitPoint.getBlobs();
+        Map<String, Blob> currentFiles = currentCommit.getBlobs();
+        Map<String, Blob> givenFiles = givenCommit.getBlobs();
+        Map<String, Blob> splitFiles = splitPoint.getBlobs();
 
         /**
         currentCommit.dump();
@@ -675,9 +700,9 @@ public class Repository {
             boolean inGiven = givenFiles.containsKey(file);
             boolean inSplit = splitFiles.containsKey(file);
 
-            String currentVersion = inCurrent ? currentFiles.get(file) : null;
-            String givenVersion = inGiven ? givenFiles.get(file) : null;
-            String splitVersion = inSplit ? splitFiles.get(file) : null;
+            String currentVersion = inCurrent ? currentFiles.get(file).getId() : null;
+            String givenVersion = inGiven ? givenFiles.get(file).getId() : null;
+            String splitVersion = inSplit ? splitFiles.get(file).getId() : null;
 
             /**
             if (branchName.equals("B2") || branchName.equals("C1")) {
@@ -770,10 +795,10 @@ public class Repository {
         Blob givenBlob = null;
 
         if (currentCommit.getBlobs().containsKey(fileName)) {
-            currentBlob = readObject(join(BLOBS_DIR, currentCommit.getBlobs().get(fileName)), Blob.class);
+            currentBlob = readObject(join(BLOBS_DIR, currentCommit.getBlobs().get(fileName).getId()), Blob.class);
         }
         if (givenCommit.getBlobs().containsKey(fileName)) {
-            givenBlob = readObject(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName)), Blob.class);
+            givenBlob = readObject(join(BLOBS_DIR, givenCommit.getBlobs().get(fileName).getId()), Blob.class);
         }
 
         String currentContents = (currentBlob != null) ? new String(currentBlob.getContentBytes()): "";

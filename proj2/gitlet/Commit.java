@@ -21,7 +21,7 @@ public class Commit implements Serializable, Dumpable {
     private String message;
     private Date timestamp;
     private List<String> parents;
-    private Map<String, String> tracked;
+    private Map<String, Blob> tracked;
 
     // Constructor for normal commit
     public Commit(String message, String parent, Map<String, Blob> blobs) {
@@ -33,9 +33,7 @@ public class Commit implements Serializable, Dumpable {
         this.message = message;
         this.parents = new ArrayList<>(parents);
         this.tracked = new HashMap<>();
-        for (Map.Entry<String, Blob> entry : blobs.entrySet()) {
-            tracked.put(entry.getKey(), entry.getValue().getId());
-        }
+        tracked.putAll(blobs);
         this.timestamp = new Date();
         this.id = generateId();
     }
@@ -70,7 +68,7 @@ public class Commit implements Serializable, Dumpable {
         this.parents = parents;
     }
 
-    public Map<String, String> getBlobs() {
+    public Map<String, Blob> getBlobs() {
         return tracked;
     }
 
