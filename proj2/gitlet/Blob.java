@@ -9,7 +9,7 @@ public class Blob implements Serializable, Dumpable {
 
     public Blob(File filePath) {
         contentBytes = Utils.readContents(filePath);
-        id = Utils.sha1(contentBytes);
+        id = Utils.sha1((Object) contentBytes);
     }
 
     public byte[] getContentBytes() {

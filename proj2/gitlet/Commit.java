@@ -40,7 +40,7 @@ public class Commit implements Serializable, Dumpable {
 
     public String generateId() {
         assert timestamp != null;
-        return Utils.sha1(message + timestamp.toString());
+        return Utils.sha1(message + timestamp);
     }
 
     public String getId() {

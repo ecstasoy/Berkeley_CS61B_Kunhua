@@ -35,10 +35,6 @@ public class Repository {
     private static String currentBranch;
     private static StageArea stageArea;
 
-    public Repository() {
-
-    }
-
     /**
      * init command
      */
@@ -398,9 +394,12 @@ public class Repository {
             System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
-        System.out.println("=== Branches ===");
+
+        currentCommit = getCurrentCommit();
         currentBranch = getCurrentBranch();
         stageArea = StageArea.getInstance();
+
+        System.out.println("=== Branches ===");
         for (String branch : Objects.requireNonNull(plainFilenamesIn(REFS_HEADS))) {
             if (branch.equals(currentBranch)) {
                 System.out.println("*" + branch);
@@ -419,9 +418,27 @@ public class Repository {
         }
 
         System.out.println("\n=== Modifications Not Staged For Commit ===");
-        //MARK: print modifications not staged for commit
+        printModifiedFiles();
         System.out.println("\n=== Untracked Files ===");
-        //MARK: print untracked files
+        Set<String> untrackedFiles = getUntrackedFiles(currentCommit);
+        for (String file : untrackedFiles) {
+            System.out.println(file);
+        }
+    }
+
+    private static void printModifiedFiles() {
+        for (String fileName : currentCommit.getBlobs().keySet()) {
+            File file = join(CWD, fileName);
+            if (!file.exists()) {
+                System.out.println(fileName + " (deleted)");
+            } else {
+                Blob blob = new Blob(file);
+                String blobId = blob.getId();
+                if (!blobId.equals(currentCommit.getBlobs().get(fileName).getId())) {
+                    System.out.println(fileName + " (modified)");
+                }
+            }
+        }
     }
 
     /**
@@ -436,14 +453,18 @@ public class Repository {
         }
 
         currentCommit = getCurrentCommit();
-        File blobFile = join(BLOBS_DIR, currentCommit.getBlobs().get(fileName).getId());
+        isFileExistInCommit(fileName, file, currentCommit);
+    }
 
-        if (!currentCommit.getBlobs().containsKey(fileName)) {
+    private static void isFileExistInCommit(String fileName, File file, Commit currCommit) {
+        File blobFile = join(BLOBS_DIR, currCommit.getBlobs().get(fileName).getId());
+
+        if (!currCommit.getBlobs().containsKey(fileName)) {
             System.out.println("File does not exist in that commit.");
             System.exit(0);
         }
         Blob blob = readObject(blobFile, Blob.class);
-        writeContents(file, blob.getContentBytes());
+        writeContents(file, (Object) blob.getContentBytes());
     }
 
     public static void checkoutCommit(String commitId, String fileName) {
@@ -460,14 +481,7 @@ public class Repository {
             System.exit(0);
         }
 
-        File blobFile = join(BLOBS_DIR, commit.getBlobs().get(fileName).getId());
-
-        if (!commit.getBlobs().containsKey(fileName)) {
-            System.out.println("File does not exist in that commit.");
-            System.exit(0);
-        }
-        Blob blob = readObject(blobFile, Blob.class);
-        writeContents(file, blob.getContentBytes());
+        isFileExistInCommit(fileName, file, commit);
     }
 
     public static void checkoutBranch(String branchName) {
@@ -491,15 +505,7 @@ public class Repository {
                 readContentsAsString(join(REFS_HEADS, branchName));
         Commit targetCommit = getCommit(targetCommitId);
 
-        for (String fileName : targetCommit.getBlobs().keySet()) {
-            File file = join(CWD, fileName);
-            if (file.exists() && !currentCommit.getBlobs().containsKey(fileName)
-                    && !isFileTracked(fileName)) {
-                System.out.println("There is an untracked file in the way;"
-                        + " delete it, or add and commit it first.");
-                System.exit(0);
-            }
-        }
+        isFileUntracked(targetCommit);
 
         Map<String, Blob> finalBlobs = targetCommit.getBlobs();
 
@@ -509,7 +515,7 @@ public class Repository {
 
             Blob blob = readObject(join(BLOBS_DIR, blobId), Blob.class);
             File file = join(CWD, fileName);
-            writeContents(file, blob.getContentBytes());
+            writeContents(file, (Object) blob.getContentBytes());
             // Only write the final state of each file
         }
 
@@ -526,13 +532,25 @@ public class Repository {
         writeContents(HEAD, branchName);
     }
 
+    private static void isFileUntracked(Commit targetCommit) {
+        for (String fileName : targetCommit.getBlobs().keySet()) {
+            File file = join(CWD, fileName);
+            if (file.exists() && !currentCommit.getBlobs().containsKey(fileName)
+                    && !isFileTracked(fileName)) {
+                System.out.println("There is an untracked file in the way;"
+                        + " delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
+    }
+
     // Function to check if a file has ever been tracked in any commit
     private static boolean isFileTracked(String fileName) {
         Set<String> allCommits = getAllCommitIds();
         // Assume this function retrieves all commit IDs in the repo
         File file = join(CWD, fileName);
         if (file.exists()) {
-            String currentFileSha1 = sha1(readContents(file));
+            String currentFileSha1 = sha1((Object) readContents(file));
             for (String commitId : allCommits) {
                 Commit commit = getCommit(commitId);
                 if (commit != null && commit.getBlobs().containsKey(fileName)) {
@@ -620,15 +638,7 @@ public class Repository {
         Commit commit = getCommit(commitId);
         currentCommit = getCurrentCommit();
 
-        for (String fileName : commit.getBlobs().keySet()) {
-            File file = join(CWD, fileName);
-            if (file.exists() && !currentCommit.getBlobs().containsKey(fileName)
-                    && !isFileTracked(fileName)) {
-                System.out.println("There is an untracked file in the way;"
-                        + " delete it, or add and commit it first.");
-                System.exit(0);
-            }
-        }
+        isFileUntracked(commit);
 
         for (String fileName : currentCommit.getBlobs().keySet()) {
             if (!commit.getBlobs().containsKey(fileName)) {
@@ -641,7 +651,7 @@ public class Repository {
                     commit.getBlobs().get(fileName).getId()), Blob.class);
             storeBlob(blob);
             File file = join(CWD, fileName);
-            writeContents(file, blob.getContentBytes());
+            writeContents(file, (Object) blob.getContentBytes());
         }
 
         stageArea = StageArea.getInstance();
@@ -854,4 +864,35 @@ public class Repository {
         }
     }
 
+    /** add-remote command */
+    public static void addRemote(String remoteName, String remoteDir) {
+        if (!isInitialized()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        if (join(REMOTE, remoteName).exists()) {
+            System.out.println("A remote with that name already exists.");
+            System.exit(0);
+        }
+
+        File remoteFile = join(REMOTE, remoteName);
+        writeContents(remoteFile, remoteDir);
+    }
+
+    /** rm-remote command */
+    public static void rmRemote(String remoteName) {
+        if (!isInitialized()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        if (!join(REMOTE, remoteName).exists()) {
+            System.out.println("A remote with that name does not exist.");
+            System.exit(0);
+        }
+
+        File remoteFile = join(REMOTE, remoteName);
+        Utils.restrictedDelete(remoteFile);
+    }
 }
