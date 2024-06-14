@@ -624,6 +624,15 @@ public class Repository {
         Map<String, String> givenFiles = givenCommit.getBlobs();
         Map<String, String> splitFiles = splitPoint.getBlobs();
 
+        /**
+        currentCommit.dump();
+        System.out.println(currentFiles);
+        givenCommit.dump();
+        System.out.println(givenFiles);
+        splitPoint.dump();
+        System.out.println(splitFiles);
+         */
+
         // Determine actions for each file in the three commits
         Set<String> allFiles = new HashSet<>(currentFiles.keySet());
         allFiles.addAll(givenFiles.keySet());
@@ -638,10 +647,22 @@ public class Repository {
             String givenVersion = inGiven ? givenFiles.get(file) : null;
             String splitVersion = inSplit ? splitFiles.get(file) : null;
 
+            /**
+            if (branchName.equals("B2") || branchName.equals("C1")) {
+                System.out.println(file);
+                System.out.println(inCurrent);
+                System.out.println(inGiven);
+                System.out.println(inSplit);
+                System.out.println(currentVersion);
+                System.out.println(givenVersion);
+                System.out.println(splitVersion);
+            }
+             */
+
             if (inCurrent && inGiven && !givenVersion.equals(currentVersion) && !givenVersion.equals(splitVersion) && !currentVersion.equals(splitVersion)) {
                 handleMergeConflict(file, currentCommit, givenCommit);
                 conflict = true;
-            } else if (inGiven && (!inCurrent || !givenVersion.equals(splitVersion))) {
+            } else if (inGiven && !inCurrent && !inSplit) {
                 checkoutAndStageFile(file, givenCommit);
             } else if (!inGiven && inSplit && inCurrent ) {
                 if (currentVersion.equals(splitVersion)) {
@@ -690,15 +711,21 @@ public class Repository {
 
     private static List<String> getAncestors(Commit commit) {
         List<String> ancestors = new ArrayList<>();
-        while (commit != null) {
-            ancestors.add(commit.getId());
-            List<String> parent = commit.getParent();
-            if (parent.isEmpty()) {
-                break;
-            } else {
-                commit = getCommit(parent.get(0));
+        Stack<Commit> stack = new Stack<>();
+        stack.push(commit);
+
+        while (!stack.isEmpty()) {
+            Commit current = stack.pop();
+            ancestors.add(current.getId());
+
+            for (String parentId : current.getParent()) {
+                Commit parentCommit = getCommit(parentId);
+                if (parentCommit != null) {
+                    stack.push(parentCommit);
+                }
             }
         }
+
         return ancestors;
     }
 
