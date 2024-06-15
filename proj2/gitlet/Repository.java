@@ -31,6 +31,7 @@ public class Repository {
     public static final File REFS = join(GITLET_DIR, "REFS");
     public static final File REFS_HEADS = join(REFS, "heads");
     public static final File REMOTE = join(GITLET_DIR, "remotes");
+    public static final File REMOTE_HEADS = join(REFS, "remotes");
 
     private static Commit currentCommit;
     private static String currentBranch;
@@ -53,6 +54,7 @@ public class Repository {
         REFS_HEADS.mkdir();
         HEAD.createNewFile();
         REMOTE.mkdir();
+        REMOTE_HEADS.mkdir();
 
         initCommit();
         initHEAD();
@@ -684,7 +686,7 @@ public class Repository {
     }
 
     /** merge command */
-    public static void merge(String branchName) {
+    public static void merge(String branchName, String remoteName) {
         if (!isInitialized()) {
             System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
@@ -697,9 +699,23 @@ public class Repository {
             System.exit(0);
         }
 
-        if (!Objects.requireNonNull(plainFilenamesIn(REFS_HEADS)).contains(branchName)) {
-            System.out.println("A branch with that name does not exist.");
-            System.exit(0);
+        if (remoteName == null) {
+            if (!Objects.requireNonNull(plainFilenamesIn(REFS_HEADS)).contains(branchName)) {
+                System.out.println("A branch with that name does not exist.");
+                System.exit(0);
+            }
+        } else {
+            if (!Objects.requireNonNull(plainFilenamesIn(join(REMOTE_HEADS, remoteName)))
+                    .contains(branchName)) {
+                System.out.println("Remote branch does not exist.");
+                System.exit(0);
+            }
+
+            if (!Objects.requireNonNull(plainFilenamesIn(join(REMOTE_HEADS, remoteName)))
+                    .contains(branchName)) {
+                System.out.println("A branch with that name does not exist on the remote.");
+                System.exit(0);
+            }
         }
 
         if (branchName.equals(readContentsAsString(HEAD))) {
@@ -709,7 +725,13 @@ public class Repository {
 
         currentCommit = getCurrentCommit();
         Commit givenCommit = null;
-        givenCommit = getCommit(readContentsAsString(join(REFS_HEADS, branchName)), null);
+
+        if (remoteName == null) {
+            givenCommit = getCommit(readContentsAsString(join(REFS_HEADS, branchName)), null);
+        } else {
+            givenCommit = getCommit(readContentsAsString(join(REMOTE_HEADS, remoteName, branchName)), remoteName);
+        }
+
         Commit splitPoint = findSplitPoint(branchName);
 
         if (splitPoint == null) {
@@ -903,6 +925,7 @@ public class Repository {
         }
 
         writeContents(join(REMOTE, remoteName), remoteDir);
+        join(REMOTE_HEADS, remoteName).mkdir();
     }
 
     /** rm-remote command */
@@ -977,8 +1000,7 @@ public class Repository {
             System.exit(0);
         }
 
-        String localBranchName = remoteName + "/" + remoteBranchName;
-        createBranchIfNotExist(localBranchName);
+        createBranchIfNotExist(remoteName, remoteBranchName);
         Commit remoteHead = getCommit(readContentsAsString(remoteBranch), remoteName);
 
         List<Commit> newCommits = fetchNewCommits(remoteHead, remoteName);
@@ -986,13 +1008,13 @@ public class Repository {
             saveCommitLocally(commit);
         }
 
-        writeContents(join(REFS_HEADS, localBranchName), remoteHead.getId());
+        writeContents(join(REMOTE_HEADS, remoteName, remoteBranchName), remoteHead.getId());
     }
 
     public static void pull(String remoteName, String remoteBranchName) {
         fetch(remoteName, remoteBranchName);
-        String branchName = remoteName + "/" + remoteBranchName;
-        merge(branchName);
+
+        merge(remoteBranchName, remoteName);
     }
 
     private static boolean isAncestorOf (Commit localCommit, Commit remoteCommit) {
@@ -1030,9 +1052,9 @@ public class Repository {
         writeObject(commitFile, commit);
     }
 
-    private static void createBranchIfNotExist(String branchName) {
-        if (!Objects.requireNonNull(plainFilenamesIn(REFS_HEADS)).contains(branchName)) {
-            writeContents(join(REFS_HEADS, branchName), "");
+    private static void createBranchIfNotExist(String remoteName, String branchName) {
+        if (!plainFilenamesIn(join(REMOTE_HEADS, remoteName)).contains(branchName)) {
+            writeContents(join(REMOTE_HEADS, remoteName, branchName), "");
         }
     }
 
