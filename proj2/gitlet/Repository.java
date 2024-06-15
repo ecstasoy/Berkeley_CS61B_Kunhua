@@ -961,13 +961,7 @@ public class Repository {
             System.exit(0);
         }
 
-        String localBranchName = remoteName + "/" + remoteBranchName;
-        try {
-            createBranchIfNotExist(localBranchName);
-        } catch (IOException e) {
-            System.out.println("Error creating branch.");
-            System.exit(0);
-        }
+        createBranchIfNotExist(remoteBranchName, remoteFile);
         Commit remoteHead = getCommit(readContentsAsString(remoteBranch));
 
         List<Commit> newCommits = fetchNewCommits(remoteHead);
@@ -975,14 +969,13 @@ public class Repository {
             saveCommitLocally(commit);
         }
 
-        writeContents(join(REFS_HEADS, localBranchName), remoteHead.getId());
+        writeContents(join(remoteFile, remoteBranchName), remoteHead.getId());
     }
 
     public static void pull(String remoteName, String remoteBranchName) {
         fetch(remoteName, remoteBranchName);
 
-        String fetchedBranchName = remoteName + "/" + remoteBranchName;
-        merge(fetchedBranchName);
+        merge(remoteBranchName);
     }
 
     private static boolean isAncestorOf (Commit localCommit, Commit remoteCommit) {
@@ -1020,9 +1013,9 @@ public class Repository {
         writeObject(commitFile, commit);
     }
 
-    private static void createBranchIfNotExist(String branchName) throws IOException {
-        if (!Objects.requireNonNull(plainFilenamesIn(REFS_HEADS)).contains(branchName)) {
-            join(REFS_HEADS, branchName).createNewFile();
+    private static void createBranchIfNotExist(String branchName, File remoteDir) {
+        if (!Objects.requireNonNull(plainFilenamesIn(remoteDir)).contains(branchName)) {
+            writeContents(join(remoteDir, branchName), "");
         }
     }
 
