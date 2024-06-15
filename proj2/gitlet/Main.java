@@ -90,6 +90,10 @@ public class Main {
                 validArgs(args, 2);
                 Repository.rmRemote(args[1]);
                 break;
+            case "push":
+                validArgs(args, 3);
+                Repository.push(args[1], args[2]);
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);

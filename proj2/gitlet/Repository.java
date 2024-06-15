@@ -903,4 +903,155 @@ public class Repository {
         File remoteFile = join(REMOTE, remoteName);
         Utils.restrictedDelete(remoteFile);
     }
+
+    /** push command */
+    public static void push(String remoteName, String remoteBranchName) {
+        if (!isInitialized()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        if (!join(REMOTE, remoteName).exists()) {
+            System.out.println("Remote directory not found.");
+            System.exit(0);
+        }
+
+        File remoteFile = join(REMOTE, remoteName);
+        String remoteDir = readContentsAsString(remoteFile);
+        File remoteBranch = join(remoteDir, "REFS", "heads", remoteBranchName);
+
+        if (!remoteBranch.exists()) {
+            System.out.println("Remote branch not found.");
+            System.exit(0);
+        }
+
+        String remoteCommitId = readContentsAsString(remoteBranch);
+        Commit remoteCommit = getCommit(remoteCommitId);
+        Commit localCommit = getCurrentCommit();
+
+         if (!isAncestorOf(localCommit, remoteCommit)) {
+            System.out.println("Please pull down remote changes before pushing.");
+            System.exit(0);
+         }
+
+        List<Commit> commitsToPush = getCommitsToPush(localCommit, remoteCommit);
+        for (Commit commit : commitsToPush) {
+            saveCommitToRemote(commit, remoteDir);
+        }
+
+        writeContents(remoteBranch, localCommit.getId());
+    }
+
+    public static void fetch(String remoteName, String remoteBranchName) {
+        if (!isInitialized()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        if (!join(REMOTE, remoteName).exists()) {
+            System.out.println("Remote directory not found.");
+            System.exit(0);
+        }
+
+        File remoteFile = join(REMOTE, remoteName);
+        String remoteDir = readContentsAsString(remoteFile);
+        File remoteBranch = join(remoteDir, "REFS", "heads", remoteBranchName);
+        if (!remoteBranch.exists()) {
+            System.out.println("That remote does not have that branch.");
+            System.exit(0);
+        }
+
+        String localBranchName = remoteName + "/" + remoteBranchName;
+        createBranchIfNotExist(localBranchName);
+        Commit remoteHead = getCommit(readContentsAsString(remoteBranch));
+
+        List<Commit> newCommits = fetchNewCommits(remoteHead);
+        for (Commit commit : newCommits) {
+            saveCommitLocally(commit);
+        }
+
+        writeContents(join(REFS_HEADS, localBranchName), remoteHead.getId());
+    }
+
+    private static boolean isAncestorOf (Commit localCommit, Commit remoteCommit) {
+        List<String> remoteAncestors = getAncestors(remoteCommit);
+        return remoteAncestors.contains(localCommit.getId());
+    }
+
+    private static List<Commit> getCommitsToPush(Commit localCommit, Commit ancestorCommit) {
+        // Collects all commits from localCommit up to, but not including, ancestorCommit
+        List<Commit> commitsToPush = new ArrayList<>();
+        Stack<Commit> stack = new Stack<>();
+        stack.push(localCommit);
+
+        while (!stack.isEmpty()) {
+            Commit current = stack.pop();
+            if (current.getId().equals(ancestorCommit.getId())) {
+                break;
+            }
+            commitsToPush.add(current);
+            for (String parentId : current.getParent()) {
+                Commit parentCommit = getCommit(parentId);
+                if (parentCommit != null) {
+                    stack.push(parentCommit);
+                }
+            }
+        }
+        return commitsToPush;
+    }
+
+    private static void saveCommitToRemote(Commit commit, String remoteDir) {
+        File remoteCommitsDir = join(remoteDir, "commits");
+        File commitDir = join(remoteCommitsDir, commit.getId().substring(0, 2));
+        commitDir.mkdir();
+        File commitFile = join(commitDir, commit.getId().substring(2));
+        writeObject(commitFile, commit);
+    }
+
+    private static void createBranchIfNotExist(String branchName) {
+        if (!Objects.requireNonNull(plainFilenamesIn(REFS_HEADS)).contains(branchName)) {
+            writeContents(join(REFS_HEADS, branchName), "");
+        }
+    }
+
+    private static List<Commit> fetchNewCommits(Commit remoteHead) {
+        List<Commit> newCommits = new ArrayList<>();
+        Stack<Commit> stack = new Stack<>();
+        stack.push(remoteHead);
+
+        while (!stack.isEmpty()) {
+            Commit current = stack.pop();
+            if (!currentCommitExistsLocally(current)) {
+                newCommits.add(current);
+            }
+            for (String parentId : current.getParent()) {
+                Commit parentCommit = getCommit(parentId);
+                if (parentCommit != null) {
+                    stack.push(parentCommit);
+                }
+            }
+        }
+        return newCommits;
+    }
+
+    private static boolean currentCommitExistsLocally(Commit commit) {
+        File commitDir = join(COMMITS_DIR, commit.getId().substring(0, 2));
+        if (!commitDir.exists()) {
+            return false;
+        }
+        for (File commitFile : Objects.requireNonNull(commitDir.listFiles())) {
+            if (commitFile.getName().equals(commit.getId().substring(2))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void saveCommitLocally(Commit commit) {
+        File commitDir = join(COMMITS_DIR, commit.getId().substring(0, 2));
+        commitDir.mkdir();
+        File commitFile = join(commitDir, commit.getId().substring(2));
+        writeObject(commitFile, commit);
+    }
+
 }
