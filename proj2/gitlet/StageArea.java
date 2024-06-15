@@ -29,7 +29,7 @@ public class StageArea implements Serializable, Dumpable {
     }
 
     public void save() {
-        writeObject(Repository.STAGE, this);
+        writeObject(STAGE, this);
     }
 
     public void stageFile(String fileName, File file) {
