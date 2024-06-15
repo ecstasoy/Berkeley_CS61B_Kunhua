@@ -433,12 +433,16 @@ public class Repository {
     private static void printModifiedFiles() {
         for (String fileName : currentCommit.getBlobs().keySet()) {
             File file = join(CWD, fileName);
-            if (!file.exists() && stageArea.isRemoved(fileName)) {
-                System.out.println(fileName + " (deleted)");
-            } else {
+            if (file.exists()) {
                 if (!sha1((Object) readContents(file)).equals(
                         currentCommit.getBlobs().get(fileName).getId())) {
                     System.out.println(fileName + " (modified)");
+                }
+            } else {
+                if (stageArea.isRemoved(fileName)) {
+                    continue;
+                } else {
+                    System.out.println(fileName + " (deleted)");
                 }
             }
         }
