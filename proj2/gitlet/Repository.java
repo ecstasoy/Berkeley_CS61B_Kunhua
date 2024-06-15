@@ -427,7 +427,7 @@ public class Repository {
     private static void printModifiedFiles() {
         for (String fileName : currentCommit.getBlobs().keySet()) {
             File file = join(CWD, fileName);
-            if (file.exists()) {
+            if (file.exists() && !stageArea.isFileStaged(fileName)) {
                 if (!sha1((Object) readContents(file)).equals(
                         currentCommit.getBlobs().get(fileName).getId())) {
                     System.out.println(fileName + " (modified)");
