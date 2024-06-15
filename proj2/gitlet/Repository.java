@@ -973,6 +973,13 @@ public class Repository {
         writeContents(join(REFS_HEADS, localBranchName), remoteHead.getId());
     }
 
+    public static void pull(String remoteName, String remoteBranchName) {
+        fetch(remoteName, remoteBranchName);
+
+        String fetchedBranchName = remoteName + "/" + remoteBranchName;
+        merge(fetchedBranchName);
+    }
+
     private static boolean isAncestorOf (Commit localCommit, Commit remoteCommit) {
         List<String> remoteAncestors = getAncestors(remoteCommit);
         return remoteAncestors.contains(localCommit.getId());

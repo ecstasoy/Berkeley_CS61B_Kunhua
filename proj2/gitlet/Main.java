@@ -94,6 +94,14 @@ public class Main {
                 validArgs(args, 3);
                 Repository.push(args[1], args[2]);
                 break;
+            case "fetch":
+                validArgs(args, 3);
+                Repository.fetch(args[1], args[2]);
+                break;
+            case "pull":
+                validArgs(args, 3);
+                Repository.pull(args[1], args[2]);
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);
