@@ -293,6 +293,7 @@ public class Repository {
 
         if (remoteName != null) {
             commitDir = join(readContentsAsString(join(REMOTE, remoteName)), "commits");
+            commitDir = join(commitDir, id.substring(0, 2));
         } else {
             commitDir = join(COMMITS_DIR, id.substring(0, 2));
         }
