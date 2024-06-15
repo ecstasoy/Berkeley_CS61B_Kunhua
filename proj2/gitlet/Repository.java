@@ -509,7 +509,7 @@ public class Repository {
 
         if (branchName.contains("/")) {
             String remoteName = branchName.split("/")[0];
-            if (!plainFilenamesIn(join(REMOTE_HEADS, remoteName)).contains(branchName) {
+            if (!plainFilenamesIn(join(REMOTE_HEADS, remoteName)).contains(branchName)) {
                 System.out.println("A branch with that name does not exist on the remote.");
                 System.exit(0);
             }
