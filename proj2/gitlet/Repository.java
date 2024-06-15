@@ -962,7 +962,12 @@ public class Repository {
         }
 
         String localBranchName = remoteName + "/" + remoteBranchName;
-        createBranchIfNotExist(localBranchName);
+        try {
+            createBranchIfNotExist(localBranchName);
+        } catch (IOException e) {
+            System.out.println("Error creating branch.");
+            System.exit(0);
+        }
         Commit remoteHead = getCommit(readContentsAsString(remoteBranch));
 
         List<Commit> newCommits = fetchNewCommits(remoteHead);
@@ -1015,9 +1020,9 @@ public class Repository {
         writeObject(commitFile, commit);
     }
 
-    private static void createBranchIfNotExist(String branchName) {
+    private static void createBranchIfNotExist(String branchName) throws IOException {
         if (!Objects.requireNonNull(plainFilenamesIn(REFS_HEADS)).contains(branchName)) {
-            writeContents(join(REFS_HEADS, branchName), "");
+            join(REFS_HEADS, branchName).createNewFile();
         }
     }
 
