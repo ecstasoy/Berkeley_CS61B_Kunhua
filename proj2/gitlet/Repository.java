@@ -136,10 +136,6 @@ public class Repository {
         return currentCommit;
     }
 
-    private static void clearCurrentCommitCache() {
-        currentCommit = null;  // Call this method when a new commit is made
-    }
-
     private static String getCurrentBranch() {
         if (currentBranch == null) {
             currentBranch = readContentsAsString(HEAD);
@@ -422,9 +418,7 @@ public class Repository {
         System.out.println("\n=== Untracked Files ===");
         Set<String> untrackedFiles = getUntrackedFiles(currentCommit);
         for (String file : untrackedFiles) {
-            if (stageArea.getStagedFiles().containsKey(file)) {
-                continue;
-            } else {
+            if (!stageArea.getStagedFiles().containsKey(file)) {
                 System.out.println(file);
             }
         }
@@ -435,13 +429,12 @@ public class Repository {
             File file = join(CWD, fileName);
             if (file.exists()) {
                 if (!sha1((Object) readContents(file)).equals(
-                        currentCommit.getBlobs().get(fileName).getId())) {
+                        currentCommit.getBlobs().get(fileName).getId())
+                        && stageArea.isFileStaged(fileName)) {
                     System.out.println(fileName + " (modified)");
                 }
             } else {
-                if (stageArea.isRemoved(fileName)) {
-                    continue;
-                } else {
+                if (!stageArea.isRemoved(fileName)) {
                     System.out.println(fileName + " (deleted)");
                 }
             }
