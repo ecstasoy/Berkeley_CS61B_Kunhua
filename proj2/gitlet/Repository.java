@@ -841,7 +841,7 @@ public class Repository {
                 + ">>>>>>>\n";
 
         writeContents(file, conflictContent);
-        stageArea.stageFile(fileName, file);
+        add(fileName);
         stageArea.save();
     }
 
