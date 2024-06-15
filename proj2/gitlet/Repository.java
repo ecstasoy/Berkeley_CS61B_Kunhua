@@ -507,10 +507,19 @@ public class Repository {
             System.exit(0);
         }
 
-        if (!Objects.requireNonNull(plainFilenamesIn(REFS_HEADS)).contains(branchName)) {
-            System.out.println("No such branch exists.");
-            System.exit(0);
+        if (branchName.contains("/")) {
+            String remoteName = branchName.split("/")[0];
+            if (!plainFilenamesIn(join(REMOTE_HEADS, remoteName)).contains(branchName) {
+                System.out.println("A branch with that name does not exist on the remote.");
+                System.exit(0);
+            }
+        } else {
+            if (!Objects.requireNonNull(plainFilenamesIn(REFS_HEADS)).contains(branchName)) {
+                System.out.println("No such branch exists.");
+                System.exit(0);
+            }
         }
+
         if (branchName.equals(readContentsAsString(HEAD))) {
             System.out.println("No need to checkout the current branch.");
             System.exit(0);
