@@ -1,5 +1,3 @@
 <<<<<<< HEAD
-Another wug.
-=======
-This is not a wug.
->>>>>>>
+Another wug.=======
+This is not a wug.>>>>>>>

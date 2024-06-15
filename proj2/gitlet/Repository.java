@@ -57,7 +57,6 @@ public class Repository {
         initRefsHeads();
 
         stageArea = new StageArea();
-        stageArea.save();
     }
 
     public static boolean isInitialized() {
@@ -120,7 +119,6 @@ public class Repository {
             storeBlob(blob);
         }
 
-        stageArea.save();
     }
 
     private static void storeBlob(Blob blob) {
@@ -247,7 +245,6 @@ public class Repository {
             }
         }
 
-        stageArea.save();
     }
 
     /**
@@ -429,15 +426,23 @@ public class Repository {
             File file = join(CWD, fileName);
             if (file.exists() && !stageArea.isFileStaged(fileName)) {
                 if (!sha1((Object) readContents(file)).equals(
-                        currentCommit.getBlobs().get(fileName).getId())) {
+                        currentCommit.getBlobs().get(fileName).getId())
+                        && !isConflict(fileName)) {
                     System.out.println(fileName + " (modified)");
                 }
-            } else {
+            } else if (!stageArea.isFileStaged(fileName)) {
                 if (!stageArea.isRemoved(fileName)) {
                     System.out.println(fileName + " (deleted)");
                 }
             }
         }
+    }
+
+    private static boolean isConflict(String fileName) {
+        File file = join(CWD, fileName);
+        // read the first line of that file
+        String firstLine = readContentsAsString(file).split("\n")[0];
+        return firstLine.equals("<<<<<<< HEAD");
     }
 
     /**
@@ -499,6 +504,7 @@ public class Repository {
         }
 
         currentCommit = getCurrentCommit();
+        stageArea = StageArea.getInstance();
 
         String targetCommitId =
                 readContentsAsString(join(REFS_HEADS, branchName));
@@ -528,6 +534,7 @@ public class Repository {
             }
         }
 
+        stageArea.clear();
         writeContents(HEAD, branchName);
     }
 
@@ -745,7 +752,6 @@ public class Repository {
                     Utils.restrictedDelete(join(CWD, file));
                     newBlobs.remove(file);
                     stageArea.unstageFile(file);
-                    stageArea.save();
                 } else {
                     handleMergeConflict(file, givenCommit);
                     conflict = true;
@@ -759,6 +765,7 @@ public class Repository {
         List<String> parents = Arrays.asList(currentCommit.getId(), givenCommit.getId());
         String message = "Merged " + branchName + " into " + readContentsAsString(HEAD) + ".";
         createMergeCommit(message, parents, newBlobs);
+        stageArea.clear();
 
         if (conflict) {
             System.out.println("Encountered a merge conflict.");
@@ -769,7 +776,6 @@ public class Repository {
                                           List<String> parents, Map<String, Blob> blobs) {
         Commit mergeCommit = new Commit(message, parents, blobs);
         saveCommit(mergeCommit);
-        stageArea.clear();
         writeContents(join(REFS_HEADS, readContentsAsString(HEAD)), mergeCommit.getId());
     }
 
@@ -842,14 +848,11 @@ public class Repository {
 
         writeContents(file, conflictContent);
         add(fileName);
-        stageArea.save();
     }
 
     private static void checkoutAndStageFile(String fileName, Commit commit) {
         checkoutCommit(commit.getId(), fileName);
-        stageArea = StageArea.getInstance();
         stageArea.stageFile(fileName, join(CWD, fileName));
-        stageArea.save();
     }
 
     private static Set<String> getUntrackedFiles(Commit currCommit) {

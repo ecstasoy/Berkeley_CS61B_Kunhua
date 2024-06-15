@@ -15,6 +15,7 @@ public class StageArea implements Serializable, Dumpable {
     public StageArea() {
         stagedFiles = new HashMap<>();
         removedFiles = new HashSet<>();
+        writeObject(STAGE, this);
     }
 
     public static StageArea getInstance() {
@@ -26,10 +27,6 @@ public class StageArea implements Serializable, Dumpable {
             }
         }
         return instance;
-    }
-
-    public void save() {
-        writeObject(STAGE, this);
     }
 
     public void stageFile(String fileName, File file) {
@@ -45,10 +42,12 @@ public class StageArea implements Serializable, Dumpable {
 
     public void markRemoved(String fileName) {
         removedFiles.add(fileName);
+        writeObject(STAGE, this);
     }
 
     public void unmarkRemoved(String fileName) {
         removedFiles.remove(fileName);
+        writeObject(STAGE, this);
     }
 
     public boolean isRemoved(String fileName) {
