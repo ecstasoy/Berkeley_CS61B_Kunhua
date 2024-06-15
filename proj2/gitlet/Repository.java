@@ -2,6 +2,8 @@ package gitlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static gitlet.Utils.*;
@@ -16,7 +18,7 @@ public class Repository {
     /**
      * The current working directory.
      */
-    public static final File CWD = new File(System.getProperty("user.dir"));
+    public static File CWD = new File(System.getProperty("user.dir"));
     /**
      * The .gitlet directory.
      */
@@ -29,7 +31,6 @@ public class Repository {
     public static final File REFS = join(GITLET_DIR, "REFS");
     public static final File REFS_HEADS = join(REFS, "heads");
     public static final File REMOTE = join(GITLET_DIR, "remote");
-    public static final File REMOTE_HEADS = join(REMOTE, "heads");
 
     private static Commit currentCommit;
     private static String currentBranch;
@@ -51,6 +52,7 @@ public class Repository {
         REFS.mkdir();
         REFS_HEADS.mkdir();
         HEAD.createNewFile();
+        REMOTE.mkdir();
 
         initCommit();
         initHEAD();
@@ -884,8 +886,7 @@ public class Repository {
             System.exit(0);
         }
 
-        File remoteFile = join(REMOTE, remoteName);
-        writeContents(remoteFile, remoteDir);
+        writeContents(join(REMOTE, remoteName), remoteDir);
     }
 
     /** rm-remote command */
@@ -900,8 +901,7 @@ public class Repository {
             System.exit(0);
         }
 
-        File remoteFile = join(REMOTE, remoteName);
-        Utils.restrictedDelete(remoteFile);
+        Utils.restrictedDelete(join(REMOTE, remoteName));
     }
 
     /** push command */
