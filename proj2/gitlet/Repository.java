@@ -429,8 +429,7 @@ public class Repository {
             File file = join(CWD, fileName);
             if (file.exists()) {
                 if (!sha1((Object) readContents(file)).equals(
-                        currentCommit.getBlobs().get(fileName).getId())
-                        && stageArea.isFileStaged(fileName)) {
+                        currentCommit.getBlobs().get(fileName).getId())) {
                     System.out.println(fileName + " (modified)");
                 }
             } else {
