@@ -133,7 +133,7 @@ public class Repository {
     private static Commit getCurrentCommit() {
         if (currentCommit == null) {
             File currentCommitPath = join(REFS_HEADS, readContentsAsString(HEAD));
-            currentCommit = getCommit(readContentsAsString(currentCommitPath));
+            currentCommit = getCommit(readContentsAsString(currentCommitPath), null);
         }
         return currentCommit;
     }
@@ -282,13 +282,21 @@ public class Repository {
     private static Commit getNextCommit(Commit current) {
         List<String> parents = current.getParent();
         if (parents != null && !parents.isEmpty()) {
-            return getCommit(parents.get(0));
+            return getCommit(parents.get(0), null);
         }
         return null;  // No more parents to follow
     }
 
-    private static Commit getCommit(String id) {
-        File commitDir = join(COMMITS_DIR, id.substring(0, 2));
+    private static Commit getCommit(String id, String remoteName) {
+
+        File commitDir = null;
+
+        if (remoteName != null) {
+            commitDir = join(readContentsAsString(join(REMOTE, remoteName)), "commits");
+        } else {
+            commitDir = join(COMMITS_DIR, id.substring(0, 2));
+        }
+
         if (id.length() < 6) {
             System.out.println("Commit id is too short.");
             System.exit(0);
@@ -482,7 +490,7 @@ public class Repository {
             System.exit(0);
         }
 
-        Commit commit = getCommit(commitId);
+        Commit commit = getCommit(commitId, null);
 
         if (commit.getBlobs().get(fileName) == null) {
             System.out.println("File does not exist in that commit.");
@@ -512,7 +520,7 @@ public class Repository {
 
         String targetCommitId =
                 readContentsAsString(join(REFS_HEADS, branchName));
-        Commit targetCommit = getCommit(targetCommitId);
+        Commit targetCommit = getCommit(targetCommitId, null);
 
         isFileUntracked(targetCommit);
 
@@ -562,7 +570,7 @@ public class Repository {
         if (file.exists()) {
             String currentFileSha1 = sha1((Object) readContents(file));
             for (String commitId : allCommits) {
-                Commit commit = getCommit(commitId);
+                Commit commit = getCommit(commitId, null);
                 if (commit != null && commit.getBlobs().containsKey(fileName)) {
                     String fileSha1 = commit.getBlobs().get(fileName).getId();
                     if (fileSha1.equals(currentFileSha1)) {
@@ -572,7 +580,7 @@ public class Repository {
             }
         } else {
             for (String commitId : allCommits) {
-                Commit commit = getCommit(commitId);
+                Commit commit = getCommit(commitId, null);
                 if (commit != null && commit.getBlobs().containsKey(fileName)) {
                     return true; // File was tracked in this commit
                 }
@@ -645,7 +653,7 @@ public class Repository {
             System.exit(0);
         }
 
-        Commit commit = getCommit(commitId);
+        Commit commit = getCommit(commitId, null);
         currentCommit = getCurrentCommit();
 
         isFileUntracked(commit);
@@ -712,9 +720,9 @@ public class Repository {
         Commit givenCommit = null;
 
         if (remoteName == null) {
-            givenCommit = getCommit(readContentsAsString(join(REFS_HEADS, branchName)));
+            givenCommit = getCommit(readContentsAsString(join(REFS_HEADS, branchName)), null);
         } else {
-            givenCommit = getCommit(readContentsAsString(join(REMOTE_HEADS, remoteName, branchName)));
+            givenCommit = getCommit(readContentsAsString(join(REMOTE_HEADS, remoteName, branchName)), remoteName);
         }
 
         Commit splitPoint = findSplitPoint(branchName);
@@ -806,7 +814,7 @@ public class Repository {
 
     private static Commit findSplitPoint(String branchName) {
         String targetCommitId = readContentsAsString(join(REFS_HEADS, branchName));
-        Commit targetCommit = getCommit(targetCommitId);
+        Commit targetCommit = getCommit(targetCommitId, null);
         currentCommit = getCurrentCommit();
         currentBranch = getCurrentBranch();
 
@@ -818,7 +826,7 @@ public class Repository {
                 if (ancestor.equals(targetCommitId)) {
                     return null;
                 }
-                return getCommit(ancestor);
+                return getCommit(ancestor, null);
             }
         }
         return null;
@@ -834,7 +842,7 @@ public class Repository {
             ancestors.add(current.getId());
 
             for (String parentId : current.getParent()) {
-                Commit parentCommit = getCommit(parentId);
+                Commit parentCommit = getCommit(parentId, null);
                 if (parentCommit != null) {
                     stack.push(parentCommit);
                 }
@@ -950,7 +958,7 @@ public class Repository {
         }
 
         String remoteCommitId = readContentsAsString(remoteBranch);
-        Commit remoteCommit = getCommit(remoteCommitId);
+        Commit remoteCommit = getCommit(remoteCommitId, null);
         Commit localCommit = getCurrentCommit();
 
          if (!isAncestorOf(localCommit, remoteCommit)) {
@@ -986,9 +994,9 @@ public class Repository {
         }
 
         createBranchIfNotExist(remoteName, remoteBranchName);
-        Commit remoteHead = getCommit(readContentsAsString(remoteBranch));
+        Commit remoteHead = getCommit(readContentsAsString(remoteBranch), remoteName);
 
-        List<Commit> newCommits = fetchNewCommits(remoteHead);
+        List<Commit> newCommits = fetchNewCommits(remoteHead, remoteName);
         for (Commit commit : newCommits) {
             saveCommitLocally(commit);
         }
@@ -999,8 +1007,7 @@ public class Repository {
     public static void pull(String remoteName, String remoteBranchName) {
         fetch(remoteName, remoteBranchName);
 
-        String fetchedBranchName = remoteName + "/" + remoteBranchName;
-        merge(fetchedBranchName, remoteName);
+        merge(remoteBranchName, remoteName);
     }
 
     private static boolean isAncestorOf (Commit localCommit, Commit remoteCommit) {
@@ -1021,7 +1028,7 @@ public class Repository {
             }
             commitsToPush.add(current);
             for (String parentId : current.getParent()) {
-                Commit parentCommit = getCommit(parentId);
+                Commit parentCommit = getCommit(parentId, null);
                 if (parentCommit != null) {
                     stack.push(parentCommit);
                 }
@@ -1044,7 +1051,7 @@ public class Repository {
         }
     }
 
-    private static List<Commit> fetchNewCommits(Commit remoteHead) {
+    private static List<Commit> fetchNewCommits(Commit remoteHead, String remoteName) {
         List<Commit> newCommits = new ArrayList<>();
         Stack<Commit> stack = new Stack<>();
         stack.push(remoteHead);
@@ -1055,7 +1062,7 @@ public class Repository {
                 newCommits.add(current);
             }
             for (String parentId : current.getParent()) {
-                Commit parentCommit = getCommit(parentId);
+                Commit parentCommit = getCommit(parentId, remoteName);
                 if (parentCommit != null) {
                     stack.push(parentCommit);
                 }
