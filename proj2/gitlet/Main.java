@@ -80,7 +80,7 @@ public class Main {
                 break;
             case "merge":
                 validArgs(args, 2);
-                Repository.merge(args[1]);
+                Repository.merge(args[1], null);
                 break;
             case "add-remote":
                 validArgs(args, 3);
