@@ -131,9 +131,19 @@ public class Repository {
     }
 
     private static Commit getCurrentCommit() {
+
+        String currentHead = readContentsAsString(HEAD);
+
         if (currentCommit == null) {
-            File currentCommitPath = join(REFS_HEADS, readContentsAsString(HEAD));
-            currentCommit = getCommit(readContentsAsString(currentCommitPath), null);
+            if (currentHead.contains("/")) {
+                String remoteName = currentHead.split("/")[0];
+                String branchName = currentHead.split("/")[1];
+                File remoteBranch = join(REMOTE_HEADS, remoteName, branchName);
+                currentCommit = getCommit(readContentsAsString(remoteBranch), remoteName);
+            } else {
+                File currentCommitPath = join(REFS_HEADS, currentHead);
+                currentCommit = getCommit(readContentsAsString(currentCommitPath), null);
+            }
         }
         return currentCommit;
     }
@@ -507,9 +517,13 @@ public class Repository {
             System.exit(0);
         }
 
+        String remoteName = null;
+        String branch = null;
+
         if (branchName.contains("/")) {
-            String remoteName = branchName.split("/")[0];
-            if (!plainFilenamesIn(join(REMOTE_HEADS, remoteName)).contains(branchName)) {
+            remoteName = branchName.split("/")[0];
+            branch = branchName.split("/")[1];
+            if (!plainFilenamesIn(join(REMOTE_HEADS, remoteName)).contains(branch)) {
                 System.out.println("A branch with that name does not exist on the remote.");
                 System.exit(0);
             }
@@ -528,14 +542,18 @@ public class Repository {
         currentCommit = getCurrentCommit();
         stageArea = StageArea.getInstance();
 
-        String targetCommitId =
-                readContentsAsString(join(REFS_HEADS, branchName));
+        String targetCommitId = null;
         Commit targetCommit = null;
+        File blobsDir = null;
 
         if (branchName.contains("/")) {
-            targetCommit = getCommit(targetCommitId, branchName);
+            targetCommitId = readContentsAsString(join(REMOTE_HEADS, remoteName, branch));
+            targetCommit = getCommit(targetCommitId, remoteName);
+            blobsDir = join(readContentsAsString(join(REMOTE, remoteName)), "blobs");
         } else {
+            targetCommitId = readContentsAsString(join(REFS_HEADS, branchName));
             targetCommit = getCommit(targetCommitId, null);
+            blobsDir = BLOBS_DIR;
         }
 
         isFileUntracked(targetCommit);
@@ -546,7 +564,10 @@ public class Repository {
             String fileName = entry.getKey();
             String blobId = entry.getValue().getId();
 
-            Blob blob = readObject(join(BLOBS_DIR, blobId), Blob.class);
+            Blob blob = readObject(join(blobsDir, blobId), Blob.class);
+            if (blobsDir != BLOBS_DIR) {
+                storeBlob(blob);
+            }
             File file = join(CWD, fileName);
             writeContents(file, (Object) blob.getContentBytes());
             // Only write the final state of each file
@@ -974,7 +995,7 @@ public class Repository {
         }
 
         String remoteCommitId = readContentsAsString(remoteBranch);
-        Commit remoteCommit = getCommit(remoteCommitId, null);
+        Commit remoteCommit = getCommit(remoteCommitId, remoteName);
         Commit localCommit = getCurrentCommit();
 
          if (!isAncestorOf(localCommit, remoteCommit)) {
@@ -1027,8 +1048,8 @@ public class Repository {
     }
 
     private static boolean isAncestorOf (Commit localCommit, Commit remoteCommit) {
-        List<String> remoteAncestors = getAncestors(remoteCommit);
-        return remoteAncestors.contains(localCommit.getId());
+        List<String> remoteAncestors = getAncestors(localCommit);
+        return remoteAncestors.contains(remoteCommit.getId());
     }
 
     private static List<Commit> getCommitsToPush(Commit localCommit, Commit ancestorCommit) {
