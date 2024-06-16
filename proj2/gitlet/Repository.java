@@ -1003,6 +1003,7 @@ public class Repository {
         writeContents(remoteBranch, localCommit.getId());
     }
 
+    /** fetch command */
     public static void fetch(String remoteName, String remoteBranchName) {
         File remoteBranch = checkFetchPush(remoteName, remoteBranchName);
         createBranchIfNotExist(remoteName, remoteBranchName);
@@ -1020,6 +1021,7 @@ public class Repository {
         writeContents(join(REMOTE_HEADS, remoteName, remoteBranchName), remoteHead.getId());
     }
 
+    /** pull command */
     public static void pull(String remoteName, String remoteBranchName) {
         fetch(remoteName, remoteBranchName);
 
@@ -1121,7 +1123,7 @@ public class Repository {
         }
         File remoteBranch = join(remoteDir, "REFS", "heads", remoteBranchName);
         if (!remoteBranch.exists()) {
-            System.out.println("Remote branch not found.");
+            System.out.println("That remote does not have that branch.");
             System.exit(0);
         }
 
