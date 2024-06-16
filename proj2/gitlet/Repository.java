@@ -978,7 +978,7 @@ public class Repository {
             System.exit(0);
         }
 
-        Utils.restrictedDelete(join(REMOTE, remoteName));
+        join(REMOTE, remoteName).delete();
     }
 
     /** push command */
