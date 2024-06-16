@@ -748,7 +748,8 @@ public class Repository {
             }
         }
 
-        if (branchName.equals(readContentsAsString(HEAD))) {
+        String branch = remoteName == null ? branchName : remoteName + "/" + branchName;
+        if (branch.equals(readContentsAsString(HEAD))) {
             System.out.println("Cannot merge a branch with itself.");
             System.exit(0);
         }
@@ -762,7 +763,7 @@ public class Repository {
             givenCommit = getCommit(readContentsAsString(join(REMOTE_HEADS, remoteName, branchName)), remoteName);
         }
 
-        Commit splitPoint = findSplitPoint(branchName);
+        Commit splitPoint = findSplitPoint(branchName, remoteName);
 
         if (splitPoint == null) {
             System.out.println("Given branch is an ancestor of the current branch.");
@@ -780,10 +781,10 @@ public class Repository {
         Set<String> untrackedFiles = getUntrackedFiles(currentCommit);
         checkForUntrackedFiles(untrackedFiles, givenCommit);
 
-        mergeHelper(givenCommit, splitPoint, branchName);
+        mergeHelper(givenCommit, splitPoint, branchName, remoteName);
     }
 
-    private static void mergeHelper(Commit givenCommit, Commit splitPoint, String branchName) {
+    private static void mergeHelper(Commit givenCommit, Commit splitPoint, String branchName, String remoteName) {
         Map<String, Blob> currentFiles = currentCommit.getBlobs();
         Map<String, Blob> givenFiles = givenCommit.getBlobs();
         Map<String, Blob> splitFiles = splitPoint.getBlobs();
@@ -832,8 +833,9 @@ public class Repository {
             }
         }
 
+        String branch = remoteName == null ? branchName : remoteName + "/" + branchName;
         List<String> parents = Arrays.asList(currentCommit.getId(), givenCommit.getId());
-        String message = "Merged " + branchName + " into " + readContentsAsString(HEAD) + ".";
+        String message = "Merged " + branch + " into " + readContentsAsString(HEAD) + ".";
         createMergeCommit(message, parents, newBlobs);
         stageArea.clear();
 
@@ -849,8 +851,14 @@ public class Repository {
         writeContents(join(REFS_HEADS, readContentsAsString(HEAD)), mergeCommit.getId());
     }
 
-    private static Commit findSplitPoint(String branchName) {
-        String targetCommitId = readContentsAsString(join(REFS_HEADS, branchName));
+    private static Commit findSplitPoint(String branchName, String remoteName) {
+
+        String targetCommitId = null;
+        if (remoteName == null) {
+            targetCommitId = readContentsAsString(join(REFS_HEADS, branchName));
+        } else {
+            targetCommitId = readContentsAsString(join(REMOTE_HEADS, remoteName, branchName));
+        }
         Commit targetCommit = getCommit(targetCommitId, null);
         currentCommit = getCurrentCommit();
         currentBranch = getCurrentBranch();
@@ -1036,7 +1044,11 @@ public class Repository {
         List<Commit> newCommits = fetchNewCommits(remoteHead, remoteName);
         for (Commit commit : newCommits) {
             saveCommitLocally(commit);
+            for (Blob blob : commit.getBlobs().values()) {
+                storeBlob(blob);
+            }
         }
+
 
         writeContents(join(REMOTE_HEADS, remoteName, remoteBranchName), remoteHead.getId());
     }
