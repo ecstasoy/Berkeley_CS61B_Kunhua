@@ -995,8 +995,11 @@ public class Repository {
 
         File remoteFile = join(REMOTE, remoteName);
         String remoteDir = readContentsAsString(remoteFile);
+        if (!join(remoteDir).exists()) {
+            System.out.println("Remote directory not found.");
+            System.exit(0);
+        }
         File remoteBranch = join(remoteDir, "REFS", "heads", remoteBranchName);
-
         if (!remoteBranch.exists()) {
             System.out.println("Remote branch not found.");
             System.exit(0);
