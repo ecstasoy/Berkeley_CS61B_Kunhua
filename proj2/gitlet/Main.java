@@ -108,6 +108,12 @@ public class Main {
         }
     }
 
+    /**
+     * Check if the number of arguments is correct.
+     *
+     * @param args
+     * @param numArgs
+     */
     private static void validArgs(String[] args, int numArgs) {
         if (args.length != numArgs) {
             System.out.println("Incorrect operands.");

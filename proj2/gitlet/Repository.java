@@ -7,21 +7,17 @@ import java.util.*;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet repository.
- *  MARK: It's a good idea to give a description here of what else this Class
- *  does at a high level.
+ *  This class contains the main logic for the Gitlet version-control system.
+ *  It provides methods to handle all the commands that the user can input.
+ *  It also contains methods to interact with the filesystem to store and retrieve
+ *  commit objects, blobs, and other data.
  *
  *  @author Kunhua Huang
  */
 public class Repository {
-    /**
-     * The current working directory.
-     */
-    public static final File CWD = new File(System.getProperty("user.dir"));
-    /**
-     * The .gitlet directory.
-     */
-    public static final File GITLET_DIR = join(CWD, ".gitlet");
 
+    public static final File CWD = new File(System.getProperty("user.dir"));
+    public static final File GITLET_DIR = join(CWD, ".gitlet");
     public static final File STAGE = join(GITLET_DIR, "stage");
     public static final File BLOBS_DIR = join(GITLET_DIR, "blobs");
     public static final File COMMITS_DIR = join(GITLET_DIR, "commits");
@@ -35,11 +31,13 @@ public class Repository {
     private static String currentBranch;
     private static StageArea stageArea;
 
-    /**
-     * init command
+    /** init command
+     *  Creates a new Gitlet version-control system in the current directory.
+     *
+     *  @throws IOException if an I/O error occurs
      */
     public static void init() throws IOException {
-        if (isInitialized()) {
+        if (GITLET_DIR.exists()) {
             System.out.println("A Gitlet version-control system"
                     + " already exists in the current directory.");
             System.exit(0);
@@ -61,10 +59,27 @@ public class Repository {
         stageArea = new StageArea();
     }
 
-    public static boolean isInitialized() {
-        return GITLET_DIR.exists();
+    /** isInitialized
+     *  Checks if the current directory is a Gitlet repository.
+     *  If not, prints an error message and exits the program.
+     *  This method is used to ensure that the user is in a Gitlet repository
+     *  before executing any commands.
+     */
+    public static void isInitialized() {
+        if (!GITLET_DIR.exists()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
     }
 
+    /** initCommit
+     *  Initializes the initial commit for the Gitlet repository.
+     *  The initial commit has no parent commits and no files.
+     *  It is the first commit in the repository.
+     *  The HEAD file is updated to point to the initial commit.
+     *  The master branch is created and points to the initial commit.
+     *  The initial commit is saved to the .gitlet/commits directory.
+     */
     public static void initCommit() {
         // Use an empty list to signify no parents for the initial commit
         List<String> noParents = new ArrayList<>();
@@ -78,26 +93,41 @@ public class Repository {
         saveCommit(initCommit);
     }
 
+    /** initHEAD
+     *  Initializes the HEAD file to point to the master branch.
+     *  This method is called after the initial commit is created.
+     *  The HEAD file is used to keep track of the current branch.
+     *  The master branch is the default branch in Gitlet.
+     *  The HEAD file is updated to point to the master branch.
+     */
     public static void initHEAD() {
         writeContents(HEAD, "master");
     }
 
+    /** initRefsHeads
+     *  Initializes the master branch to point to the initial commit.
+     *  This method is called after the initial commit is created.
+     *  The master branch is the default branch in Gitlet.
+     *  The master branch is created and points to the initial commit.
+     */
     public static void initRefsHeads() {
         File master = join(REFS_HEADS, "master");
         writeContents(master, currentCommit.getId());
     }
 
-    /**
-     * add command
+    /** add command
+     *  Adds a copy of the file as it currently exists to the staging area.
+     *  The file is added to the staging area with the same name it has in the
+     *  working directory.
+     *
+     *  @param fileName the name of the file to add
      */
     public static void add(String fileName) {
+        isInitialized();
+
         File file = join(CWD, fileName);
         if (!file.exists()) {
             System.out.println("File does not exist.");
-            System.exit(0);
-        }
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
 
@@ -123,11 +153,27 @@ public class Repository {
 
     }
 
+    /** storeBlob
+     *  Stores the blob object in the .gitlet/blobs directory.
+     *  The blob object is stored as a file with the name of its unique id.
+     *
+     *  @param blob the blob object to store
+     */
     private static void storeBlob(Blob blob) {
         File blobFile = join(BLOBS_DIR, blob.getId());
         writeObject(blobFile, blob);
     }
 
+    /** getCurrentCommit
+     *  Returns the current commit object.
+     *  The current commit is determined by the HEAD file.
+     *  If the HEAD file points to a branch, the current commit is the commit
+     *  that the branch points to.
+     *  If the HEAD file points to a commit, the current commit is the commit
+     *  that the HEAD file points to.
+     *
+     *  @return the current commit object
+     */
     private static Commit getCurrentCommit() {
 
         String currentHead = readContentsAsString(HEAD);
@@ -146,6 +192,14 @@ public class Repository {
         return currentCommit;
     }
 
+    /** getCurrentBranch
+     *  Returns the current branch.
+     *  The current branch is determined by the HEAD file.
+     *  If the HEAD file points to a branch, the current branch is the branch
+     *  that the HEAD file points to.
+     *
+     *  @return the current branch
+     */
     private static String getCurrentBranch() {
         if (currentBranch == null) {
             currentBranch = readContentsAsString(HEAD);
@@ -153,14 +207,14 @@ public class Repository {
         return currentBranch;
     }
 
-    /**
-     * commit command
+    /** commit command
+     *  Saves a snapshot of certain files in the current commit and staging area.
+     *  The commit is created with the given message.
+     *
+     *  @param message the commit message
      */
     public static void commit(String message) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
 
         if (message.isEmpty()) {
             System.out.println("Please enter a commit message.");
@@ -210,6 +264,16 @@ public class Repository {
         writeContents(HEAD, getCurrentBranch());
     }
 
+    /** createCommit
+     *  Creates a new commit object with the given message, parent commit id,
+     *  and blobs.
+     *  The commit is saved to the .gitlet/commits directory.
+     *
+     *  @param message the commit message
+     *  @param parentId the parent commit id
+     *  @param blobs the blobs to store in the commit
+     *  @return the new commit object
+     */
     public static Commit createCommit(String message, String parentId,
                                       Map<String, Blob> blobs) {
         Commit newCommit = new Commit(message, parentId, blobs);
@@ -218,6 +282,11 @@ public class Repository {
         return newCommit;
     }
 
+    /** saveCommit
+     *  Saves the commit object to the .gitlet/commits directory.
+     *
+     *  @param commit the commit object to save
+     */
     public static void saveCommit(Commit commit) {
         String commitId = commit.getId();
         File commitDir = join(COMMITS_DIR, commitId.substring(0, 2));
@@ -226,14 +295,15 @@ public class Repository {
         writeObject(commitFile, commit);
     }
 
-    /**
-     * rm command
+    /** rm command
+     *  Unstages the file if it is currently staged for addition.
+     *  If the file is tracked in the current commit, marks it to indicate
+     *  that it is not to be included in the next commit.
+     *
+     *  @param fileName the name of the file to remove
      */
     public static void rm(String fileName) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
 
         currentCommit = getCurrentCommit();
         stageArea = StageArea.getInstance();
@@ -259,14 +329,11 @@ public class Repository {
 
     }
 
-    /**
-     * log command
+    /** log command
+     *  Prints information about each commit in the current branch.
      */
     public static void log() {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
         currentCommit = getCurrentCommit();
         while (currentCommit != null) {
             System.out.println("===");
@@ -287,6 +354,13 @@ public class Repository {
         }
     }
 
+    /** getNextCommit
+     *  Returns the next commit to follow in the log.
+     *  The next commit is determined by the current commit's parent.
+     *
+     *  @param current the current commit
+     *  @return the next commit to follow
+     */
     private static Commit getNextCommit(Commit current) {
         List<String> parents = current.getParent();
         if (parents != null && !parents.isEmpty()) {
@@ -295,16 +369,19 @@ public class Repository {
         return null;  // No more parents to follow
     }
 
+    /** getCommit
+     *  Returns the commit object with the given id.
+     *  The commit object is retrieved from the .gitlet/commits directory.
+     *
+     *  @param id the id of the commit to retrieve
+     *  @param remoteName the name of the remote repository
+     *  @return the commit object with the given id
+     */
     private static Commit getCommit(String id, String remoteName) {
 
-        File commitDir;
-
-        if (remoteName != null) {
-            commitDir = join(readContentsAsString(join(REMOTE, remoteName)), "commits");
-            commitDir = join(commitDir, id.substring(0, 2));
-        } else {
-            commitDir = join(COMMITS_DIR, id.substring(0, 2));
-        }
+        File commitDir = remoteName == null ? join(COMMITS_DIR, id.substring(0, 2))
+                : join(readContentsAsString(join(REMOTE, remoteName)),
+                "commits", id.substring(0, 2));
 
         if (id.length() < 6) {
             System.out.println("Commit id is too short.");
@@ -325,14 +402,11 @@ public class Repository {
         return null;
     }
 
-    /**
-     * global-log command
+    /** global-log command
+     *  Prints information about all commits in the repository.
      */
     public static void globalLog() {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
 
         List<Commit> commits = new ArrayList<>();
 
@@ -371,14 +445,13 @@ public class Repository {
 
     }
 
-    /**
-     * find command
+    /** find command
+     *  Prints the commit id of the commit with the given message.
+     *
+     *  @param commitMessage the message of the commit to find
      */
     public static void find(String commitMessage) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
         boolean found = false;
 
         for (File commitFolder : Objects.requireNonNull(COMMITS_DIR.listFiles())) {
@@ -400,14 +473,11 @@ public class Repository {
         }
     }
 
-    /**
-     * status command
+    /** status command
+     *  Prints the status of the repository.
      */
     public static void status() {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
 
         currentCommit = getCurrentCommit();
         currentBranch = getCurrentBranch();
@@ -442,6 +512,9 @@ public class Repository {
         }
     }
 
+    /** printModifiedFiles
+     *  Prints the files that have been modified or deleted since the last commit.
+     */
     private static void printModifiedFiles() {
         for (String fileName : currentCommit.getBlobs().keySet()) {
             File file = join(CWD, fileName);
@@ -459,6 +532,12 @@ public class Repository {
         }
     }
 
+    /** isConflict
+     *  Checks if the file has a conflict.
+     *
+     *  @param fileName the name of the file to check
+     *  @return true if the file has a conflict, false otherwise
+     */
     private static boolean isConflict(String fileName) {
         File file = join(CWD, fileName);
         // read the first line of that file
@@ -466,21 +545,26 @@ public class Repository {
         return firstLine.equals("<<<<<<< HEAD");
     }
 
-    /**
-     * checkout command
+    /** checkoutFile command
+     *  Checks out the file from the current commit.
+     *
+     *  @param fileName the name of the file to checkout
      */
     public static void checkoutFile(String fileName) {
+        isInitialized();
         File file = join(CWD, fileName);
-
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
-
         currentCommit = getCurrentCommit();
         isFileExistInCommit(fileName, file, currentCommit);
     }
 
+    /** isFileExistInCommit
+     *  Checks if the file exists in the given commit.
+     *  If the file does not exist, prints an error message and exits the program.
+     *
+     *  @param fileName the name of the file to check
+     *  @param file the file to write to
+     *  @param currCommit the commit to check
+     */
     private static void isFileExistInCommit(String fileName, File file, Commit currCommit) {
         File blobFile = join(BLOBS_DIR, currCommit.getBlobs().get(fileName).getId());
 
@@ -492,13 +576,15 @@ public class Repository {
         writeContents(file, (Object) blob.getContentBytes());
     }
 
+    /** checkoutCommit command
+     *  Checks out the file from the given commit.
+     *
+     *  @param commitId the id of the commit to check out
+     *  @param fileName the name of the file to check out
+     */
     public static void checkoutCommit(String commitId, String fileName) {
+        isInitialized();
         File file = join(CWD, fileName);
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
-
         Commit commit = getCommit(commitId, null);
 
         if (commit.getBlobs().get(fileName) == null) {
@@ -509,11 +595,13 @@ public class Repository {
         isFileExistInCommit(fileName, file, commit);
     }
 
+    /** checkoutBranch command
+     *  Checks out the given branch.
+     *
+     *  @param branchName the name of the branch to check out
+     */
     public static void checkoutBranch(String branchName) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
 
         String remoteName = null;
         String branch = null;
@@ -585,6 +673,11 @@ public class Repository {
         writeContents(HEAD, branchName);
     }
 
+    /** isFileUntracked
+     *  Checks if there are untracked files in the way of the checkout.
+     *
+     *  @param targetCommit the commit to check
+     */
     private static void isFileUntracked(Commit targetCommit) {
         for (String fileName : targetCommit.getBlobs().keySet()) {
             File file = join(CWD, fileName);
@@ -597,34 +690,48 @@ public class Repository {
         }
     }
 
-    // Function to check if a file has ever been tracked in any commit
+    /** isFileTracked
+     *  Checks if the file is tracked in any commit.
+     *
+     *  @param fileName the name of the file to check
+     *  @return true if the file is tracked, false otherwise
+     */
     private static boolean isFileTracked(String fileName) {
         Set<String> allCommits = getAllCommitIds();
-        // Assume this function retrieves all commit IDs in the repo
         File file = join(CWD, fileName);
-        if (file.exists()) {
-            String currentFileSha1 = sha1((Object) readContents(file));
-            for (String commitId : allCommits) {
-                Commit commit = getCommit(commitId, null);
-                if (commit != null && commit.getBlobs().containsKey(fileName)) {
-                    String fileSha1 = commit.getBlobs().get(fileName).getId();
-                    if (fileSha1.equals(currentFileSha1)) {
-                        return true; // File was tracked in this commit
-                    }
-                }
-            }
-        } else {
-            for (String commitId : allCommits) {
-                Commit commit = getCommit(commitId, null);
-                if (commit != null && commit.getBlobs().containsKey(fileName)) {
-                    return true; // File was tracked in this commit
-                }
+        String currentFileSha1 = file.exists() ? sha1((Object) readContents(file)) : null;
+
+        for (String commitId : allCommits) {
+            if (isFileInCommit(fileName, commitId, currentFileSha1)) {
+                return true;
             }
         }
-        return false; // File was never tracked
+
+        return false;
     }
 
-    // Function to get all commit IDs in the repository
+    /** isFileInCommit
+     *  Checks if the file is in the given commit.
+     *
+     *  @param fileName the name of the file to check
+     *  @param commitId the id of the commit to check
+     *  @param currentFileSha1 the sha1 of the current file
+     *  @return true if the file is in the commit, false otherwise
+     */
+    private static boolean isFileInCommit(String fileName, String commitId, String currentFileSha1) {
+        Commit commit = getCommit(commitId, null);
+        if (commit != null && commit.getBlobs().containsKey(fileName)) {
+            String fileSha1 = commit.getBlobs().get(fileName).getId();
+            return !fileSha1.equals(currentFileSha1);
+        }
+        return false;
+    }
+
+    /** getAllCommitIds
+     *  Returns a set of all commit ids in the repository.
+     *
+     *  @return a set of all commit ids in the repository
+     */
     private static Set<String> getAllCommitIds() {
         Set<String> commitIds = new HashSet<>();
         // Example: Traverse all commit objects stored in the commits directory
@@ -642,14 +749,13 @@ public class Repository {
         return commitIds;
     }
 
-    /**
-     * branch command
+    /** branch command
+     *  Creates a new branch with the given name.
+     *
+     *  @param branchName the name of the branch to create
      */
     public static void branch(String branchName) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
         if (Objects.requireNonNull(plainFilenamesIn(REFS_HEADS)).contains(branchName)) {
             System.out.println("A branch with that name already exists.");
             System.exit(0);
@@ -659,14 +765,13 @@ public class Repository {
         writeContents(join(REFS_HEADS, branchName), currentCommit.getId());
     }
 
-    /**
-     * rm-branch command
+    /** rm-branch command
+     *  Deletes the branch with the given name.
+     *
+     *  @param branchName the name of the branch to delete
      */
     public static void rmBranch(String branchName) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
         if (!Objects.requireNonNull(plainFilenamesIn(REFS_HEADS)).contains(branchName)) {
             System.out.println("A branch with that name does not exist.");
             System.exit(0);
@@ -679,14 +784,13 @@ public class Repository {
         branch.delete();
     }
 
-    /**
-     * reset command
+    /** reset command
+     *  Resets the current branch to the commit with the given id.
+     *
+     *  @param commitId the id of the commit to reset to
      */
     public static void reset(String commitId) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
 
         Commit commit = getCommit(commitId, null);
         currentCommit = getCurrentCommit();
@@ -713,12 +817,14 @@ public class Repository {
         currentCommit = commit;
     }
 
-    /** merge command */
+    /** merge command
+     *  Merges the given branch into the current branch.
+     *
+     *  @param branchName the name of the branch to merge
+     *  @param remoteName the name of the remote repository if applicable
+     */
     public static void merge(String branchName, String remoteName) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
 
         stageArea = StageArea.getInstance();
 
@@ -783,6 +889,15 @@ public class Repository {
         mergeHelper(givenCommit, splitPoint, branchName, remoteName);
     }
 
+    /** mergeHelper
+     *  Helper method for the merge command.
+     *  Merges the given branch into the current branch.
+     *
+     *  @param givenCommit the commit to merge
+     *  @param splitPoint the split point commit
+     *  @param branchName the name of the branch to merge
+     *  @param remoteName the name of the remote repository if applicable
+     */
     private static void mergeHelper(Commit givenCommit, Commit splitPoint,
                                     String branchName, String remoteName) {
         Map<String, Blob> currentFiles = currentCommit.getBlobs();
@@ -844,6 +959,13 @@ public class Repository {
         }
     }
 
+    /** createMergeCommit
+     *  Creates a merge commit with the given message, parents, and blobs.
+     *
+     *  @param message the commit message
+     *  @param parents the parent commit ids
+     *  @param blobs the blobs to store in the commit
+     */
     private static void createMergeCommit(String message,
                                           List<String> parents, Map<String, Blob> blobs) {
         Commit mergeCommit = new Commit(message, parents, blobs);
@@ -851,6 +973,13 @@ public class Repository {
         writeContents(join(REFS_HEADS, readContentsAsString(HEAD)), mergeCommit.getId());
     }
 
+    /** findSplitPoint
+     *  Finds the split point commit between the current commit and the given commit.
+     *
+     *  @param branchName the name of the branch to merge
+     *  @param remoteName the name of the remote repository if applicable
+     *  @return the split point commit
+     */
     private static Commit findSplitPoint(String branchName, String remoteName) {
 
         String targetCommitId = null;
@@ -877,6 +1006,12 @@ public class Repository {
         return null;
     }
 
+    /** getAncestors
+     *  Returns a list of all ancestor commit ids of the given commit.
+     *
+     *  @param commit the commit to get ancestors of
+     *  @return a list of all ancestor commit ids
+     */
     private static List<String> getAncestors(Commit commit) {
         List<String> ancestors = new ArrayList<>();
         Stack<Commit> stack = new Stack<>();
@@ -897,6 +1032,12 @@ public class Repository {
         return ancestors;
     }
 
+    /** handleMergeConflict
+     *  Handles a merge conflict by writing the conflict content to the file.
+     *
+     *  @param fileName the name of the file to handle
+     *  @param givenCommit the commit to merge
+     */
     private static void handleMergeConflict(String fileName, Commit givenCommit) {
         File file = join(CWD, fileName);
         Blob currentBlob = null;
@@ -928,11 +1069,23 @@ public class Repository {
         add(fileName);
     }
 
+    /** checkout command
+     *  Checks out the file from the given commit or branch.
+     *
+     *  @param commit the id of the commit to check out
+     *  @param fileName the name of the file to check out
+     */
     private static void checkoutAndStageFile(String fileName, Commit commit) {
         checkoutCommit(commit.getId(), fileName);
         stageArea.stageFile(fileName, join(CWD, fileName));
     }
 
+    /** getUntrackedFiles
+     *  Returns a set of all untracked files in the working directory.
+     *
+     *  @param currCommit the current commit
+     *  @return a set of all untracked files in the working directory
+     */
     private static Set<String> getUntrackedFiles(Commit currCommit) {
         Set<String> trackedFiles = new HashSet<>(currCommit.getBlobs().keySet());
         Set<String> allFiles = new HashSet<>(Objects.requireNonNull(plainFilenamesIn(CWD)));
@@ -940,6 +1093,12 @@ public class Repository {
         return allFiles;
     }
 
+    /** checkForUntrackedFiles
+     *  Checks if there are untracked files in the way of the merge.
+     *
+     *  @param untrackedFiles the set of untracked files
+     *  @param givenCommit the commit to merge
+     */
     private static void checkForUntrackedFiles(Set<String> untrackedFiles, Commit givenCommit) {
         for (String file : givenCommit.getBlobs().keySet()) {
             if (untrackedFiles.contains(file) && !isFileTracked(file)) {
@@ -950,12 +1109,14 @@ public class Repository {
         }
     }
 
-    /** add-remote command */
+    /** add-remote command
+     * Adds a remote repository with the given name and directory.
+     *
+     * @param remoteName the name of the remote repository
+     * @param remoteDir the directory of the remote repository
+     */
     public static void addRemote(String remoteName, String remoteDir) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
 
         if (join(REMOTE, remoteName).exists()) {
             System.out.println("A remote with that name already exists.");
@@ -966,12 +1127,13 @@ public class Repository {
         join(REMOTE_HEADS, remoteName).mkdir();
     }
 
-    /** rm-remote command */
+    /** rm-remote command
+     * Removes the remote repository with the given name.
+     *
+     * @param remoteName the name of the remote repository
+     */
     public static void rmRemote(String remoteName) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
+        isInitialized();
 
         if (!join(REMOTE, remoteName).exists()) {
             System.out.println("A remote with that name does not exist.");
@@ -981,7 +1143,12 @@ public class Repository {
         join(REMOTE, remoteName).delete();
     }
 
-    /** push command */
+    /** push command
+     * Pushes the current branch to the given remote branch.
+     *
+     * @param remoteName the name of the remote repository
+     * @param remoteBranchName the name of the remote branch
+     */
     public static void push(String remoteName, String remoteBranchName) {
         File remoteBranch = checkFetchPush(remoteName, remoteBranchName);
         File remoteFile = join(REMOTE, remoteName);
@@ -1003,7 +1170,12 @@ public class Repository {
         writeContents(remoteBranch, localCommit.getId());
     }
 
-    /** fetch command */
+    /** fetch command
+     * Fetches the given remote branch to the local repository.
+     *
+     * @param remoteName the name of the remote repository
+     * @param remoteBranchName the name of the remote branch
+     */
     public static void fetch(String remoteName, String remoteBranchName) {
         File remoteBranch = checkFetchPush(remoteName, remoteBranchName);
         createBranchIfNotExist(remoteName, remoteBranchName);
@@ -1021,18 +1193,37 @@ public class Repository {
         writeContents(join(REMOTE_HEADS, remoteName, remoteBranchName), remoteHead.getId());
     }
 
-    /** pull command */
+    /** pull command
+     * Pulls the given remote branch to the local repository.
+     *
+     * @param remoteName the name of the remote repository
+     * @param remoteBranchName the name of the remote branch
+     */
     public static void pull(String remoteName, String remoteBranchName) {
         fetch(remoteName, remoteBranchName);
 
         merge(remoteBranchName, remoteName);
     }
 
+    /** isAncestorOf
+     * Checks if the local commit is an ancestor of the remote commit.
+     *
+     * @param localCommit the local commit
+     * @param remoteCommit the remote commit
+     * @return true if the local commit is an ancestor of the remote commit, false otherwise
+     */
     private static boolean isAncestorOf(Commit localCommit, Commit remoteCommit) {
         List<String> remoteAncestors = getAncestors(localCommit);
         return remoteAncestors.contains(remoteCommit.getId());
     }
 
+    /** getCommitsToPush
+     * Returns a list of all commits to push to the remote repository.
+     *
+     * @param localCommit the local commit
+     * @param ancestorCommit the ancestor commit
+     * @return a list of all commits to push to the remote repository
+     */
     private static List<Commit> getCommitsToPush(Commit localCommit, Commit ancestorCommit) {
         // Collects all commits from localCommit up to, but not including, ancestorCommit
         List<Commit> commitsToPush = new ArrayList<>();
@@ -1055,6 +1246,12 @@ public class Repository {
         return commitsToPush;
     }
 
+    /** saveCommitToRemote
+     * Saves the given commit to the remote repository.
+     *
+     * @param commit the commit to save
+     * @param remoteDir the directory of the remote repository
+     */
     private static void saveCommitToRemote(Commit commit, String remoteDir) {
         File remoteCommitsDir = join(remoteDir, "commits");
         File commitDir = join(remoteCommitsDir, commit.getId().substring(0, 2));
@@ -1063,12 +1260,25 @@ public class Repository {
         writeObject(commitFile, commit);
     }
 
+    /** createBranchIfNotExist
+     * Creates the remote branch if it does not exist.
+     *
+     * @param remoteName the name of the remote repository
+     * @param branchName the name of the remote branch
+     */
     private static void createBranchIfNotExist(String remoteName, String branchName) {
         if (!plainFilenamesIn(join(REMOTE_HEADS, remoteName)).contains(branchName)) {
             writeContents(join(REMOTE_HEADS, remoteName, branchName), "");
         }
     }
 
+    /** fetchNewCommits
+     * Returns a list of all new commits to fetch from the remote repository.
+     *
+     * @param remoteHead the head commit of the remote repository
+     * @param remoteName the name of the remote repository
+     * @return a list of all new commits to fetch from the remote repository
+     */
     private static List<Commit> fetchNewCommits(Commit remoteHead, String remoteName) {
         List<Commit> newCommits = new ArrayList<>();
         Stack<Commit> stack = new Stack<>();
@@ -1089,6 +1299,12 @@ public class Repository {
         return newCommits;
     }
 
+    /** currentCommitExistsLocally
+     * Checks if the current commit exists locally.
+     *
+     * @param commit the commit to check
+     * @return true if the current commit exists locally, false otherwise
+     */
     private static boolean currentCommitExistsLocally(Commit commit) {
         File commitDir = join(COMMITS_DIR, commit.getId().substring(0, 2));
         if (!commitDir.exists()) {
@@ -1102,6 +1318,11 @@ public class Repository {
         return false;
     }
 
+    /** saveCommitLocally
+     * Saves the given commit locally.
+     *
+     * @param commit the commit to save
+     */
     private static void saveCommitLocally(Commit commit) {
         File commitDir = join(COMMITS_DIR, commit.getId().substring(0, 2));
         commitDir.mkdir();
@@ -1109,6 +1330,13 @@ public class Repository {
         writeObject(commitFile, commit);
     }
 
+    /** checkFetchPush
+     * Checks if the remote repository and branch exist.
+     *
+     * @param remoteName the name of the remote repository
+     * @param remoteBranchName the name of the remote branch
+     * @return the remote branch file
+     */
     private static File checkFetchPush(String remoteName, String remoteBranchName) {
         if (!join(REMOTE, remoteName).exists()) {
             System.out.println("Remote directory not found.");
