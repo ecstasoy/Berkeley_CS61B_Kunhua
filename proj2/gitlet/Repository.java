@@ -691,7 +691,7 @@ public class Repository {
     }
 
     /** isFileTracked
-     *  Checks if the file is tracked in any commit.
+     *  Checks if the file is tracked in the current commit.
      *
      *  @param fileName the name of the file to check
      *  @return true if the file is tracked, false otherwise
@@ -699,30 +699,24 @@ public class Repository {
     private static boolean isFileTracked(String fileName) {
         Set<String> allCommits = getAllCommitIds();
         File file = join(CWD, fileName);
-        String currentFileSha1 = file.exists() ? sha1((Object) readContents(file)) : null;
-
-        for (String commitId : allCommits) {
-            if (isFileInCommit(fileName, commitId, currentFileSha1)) {
-                return true;
+        if (file.exists()) {
+            String currentFileSha1 = sha1((Object) readContents(file));
+            for (String commitId : allCommits) {
+                Commit commit = getCommit(commitId, null);
+                if (commit != null && commit.getBlobs().containsKey(fileName)) {
+                    String fileSha1 = commit.getBlobs().get(fileName).getId();
+                    if (fileSha1.equals(currentFileSha1)) {
+                        return true;
+                    }
+                }
             }
-        }
-
-        return false;
-    }
-
-    /** isFileInCommit
-     *  Checks if the file is in the given commit.
-     *
-     *  @param fileName the name of the file to check
-     *  @param commitId the id of the commit to check
-     *  @param currentFileSha1 the sha1 of the current file
-     *  @return true if the file is in the commit, false otherwise
-     */
-    private static boolean isFileInCommit(String fileName, String commitId, String currentFileSha1) {
-        Commit commit = getCommit(commitId, null);
-        if (commit != null && commit.getBlobs().containsKey(fileName)) {
-            String fileSha1 = commit.getBlobs().get(fileName).getId();
-            return !fileSha1.equals(currentFileSha1);
+        } else {
+            for (String commitId : allCommits) {
+                Commit commit = getCommit(commitId, null);
+                if (commit != null && commit.getBlobs().containsKey(fileName)) {
+                    return true;
+                }
+            }
         }
         return false;
     }
