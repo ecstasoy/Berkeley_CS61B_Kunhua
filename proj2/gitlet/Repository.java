@@ -2,8 +2,6 @@ package gitlet;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 import static gitlet.Utils.*;
@@ -18,7 +16,7 @@ public class Repository {
     /**
      * The current working directory.
      */
-    public static File CWD = new File(System.getProperty("user.dir"));
+    public static final File CWD = new File(System.getProperty("user.dir"));
     /**
      * The .gitlet directory.
      */
@@ -299,7 +297,7 @@ public class Repository {
 
     private static Commit getCommit(String id, String remoteName) {
 
-        File commitDir = null;
+        File commitDir;
 
         if (remoteName != null) {
             commitDir = join(readContentsAsString(join(REMOTE, remoteName)), "commits");
@@ -542,9 +540,9 @@ public class Repository {
         currentCommit = getCurrentCommit();
         stageArea = StageArea.getInstance();
 
-        String targetCommitId = null;
-        Commit targetCommit = null;
-        File blobsDir = null;
+        String targetCommitId;
+        Commit targetCommit;
+        File blobsDir;
 
         if (branchName.contains("/")) {
             targetCommitId = readContentsAsString(join(REMOTE_HEADS, remoteName, branch));
@@ -760,7 +758,8 @@ public class Repository {
         if (remoteName == null) {
             givenCommit = getCommit(readContentsAsString(join(REFS_HEADS, branchName)), null);
         } else {
-            givenCommit = getCommit(readContentsAsString(join(REMOTE_HEADS, remoteName, branchName)), remoteName);
+            givenCommit = getCommit(readContentsAsString(join(REMOTE_HEADS,
+                    remoteName, branchName)), remoteName);
         }
 
         Commit splitPoint = findSplitPoint(branchName, remoteName);
@@ -784,7 +783,8 @@ public class Repository {
         mergeHelper(givenCommit, splitPoint, branchName, remoteName);
     }
 
-    private static void mergeHelper(Commit givenCommit, Commit splitPoint, String branchName, String remoteName) {
+    private static void mergeHelper(Commit givenCommit, Commit splitPoint,
+                                    String branchName, String remoteName) {
         Map<String, Blob> currentFiles = currentCommit.getBlobs();
         Map<String, Blob> givenFiles = givenCommit.getBlobs();
         Map<String, Blob> splitFiles = splitPoint.getBlobs();
@@ -983,36 +983,17 @@ public class Repository {
 
     /** push command */
     public static void push(String remoteName, String remoteBranchName) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
-
-        if (!join(REMOTE, remoteName).exists()) {
-            System.out.println("Remote directory not found.");
-            System.exit(0);
-        }
-
+        File remoteBranch = checkFetchPush(remoteName, remoteBranchName);
         File remoteFile = join(REMOTE, remoteName);
         String remoteDir = readContentsAsString(remoteFile);
-        if (!join(remoteDir).exists()) {
-            System.out.println("Remote directory not found.");
-            System.exit(0);
-        }
-        File remoteBranch = join(remoteDir, "REFS", "heads", remoteBranchName);
-        if (!remoteBranch.exists()) {
-            System.out.println("Remote branch not found.");
-            System.exit(0);
-        }
-
         String remoteCommitId = readContentsAsString(remoteBranch);
         Commit remoteCommit = getCommit(remoteCommitId, remoteName);
         Commit localCommit = getCurrentCommit();
 
-         if (!isAncestorOf(localCommit, remoteCommit)) {
+        if (!isAncestorOf(localCommit, remoteCommit)) {
             System.out.println("Please pull down remote changes before pushing.");
             System.exit(0);
-         }
+        }
 
         List<Commit> commitsToPush = getCommitsToPush(localCommit, remoteCommit);
         for (Commit commit : commitsToPush) {
@@ -1023,28 +1004,7 @@ public class Repository {
     }
 
     public static void fetch(String remoteName, String remoteBranchName) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            System.exit(0);
-        }
-
-        if (!join(REMOTE, remoteName).exists()) {
-            System.out.println("Remote directory not found.");
-            System.exit(0);
-        }
-
-        File remoteFile = join(REMOTE, remoteName);
-        String remoteDir = readContentsAsString(remoteFile);
-        if (!join(remoteDir).exists()) {
-            System.out.println("Remote directory not found.");
-            System.exit(0);
-        }
-        File remoteBranch = join(remoteDir, "REFS", "heads", remoteBranchName);
-        if (!remoteBranch.exists()) {
-            System.out.println("That remote does not have that branch.");
-            System.exit(0);
-        }
-
+        File remoteBranch = checkFetchPush(remoteName, remoteBranchName);
         createBranchIfNotExist(remoteName, remoteBranchName);
         Commit remoteHead = getCommit(readContentsAsString(remoteBranch), remoteName);
 
@@ -1066,7 +1026,7 @@ public class Repository {
         merge(remoteBranchName, remoteName);
     }
 
-    private static boolean isAncestorOf (Commit localCommit, Commit remoteCommit) {
+    private static boolean isAncestorOf(Commit localCommit, Commit remoteCommit) {
         List<String> remoteAncestors = getAncestors(localCommit);
         return remoteAncestors.contains(remoteCommit.getId());
     }
@@ -1147,4 +1107,24 @@ public class Repository {
         writeObject(commitFile, commit);
     }
 
+    private static File checkFetchPush(String remoteName, String remoteBranchName) {
+        if (!join(REMOTE, remoteName).exists()) {
+            System.out.println("Remote directory not found.");
+            System.exit(0);
+        }
+
+        File remoteFile = join(REMOTE, remoteName);
+        String remoteDir = readContentsAsString(remoteFile);
+        if (!join(remoteDir).exists()) {
+            System.out.println("Remote directory not found.");
+            System.exit(0);
+        }
+        File remoteBranch = join(remoteDir, "REFS", "heads", remoteBranchName);
+        if (!remoteBranch.exists()) {
+            System.out.println("Remote branch not found.");
+            System.exit(0);
+        }
+
+        return remoteBranch;
+    }
 }
